@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
+
+const CLAVE_TRABAJOS = 'gestor-dgtn-trabajos'
 
 const trabajosIniciales = [
   {
@@ -35,6 +37,20 @@ const formularioInicial = {
   estado: 'Planificación',
 }
 
+function obtenerTrabajosGuardados() {
+  const trabajosGuardados = localStorage.getItem(CLAVE_TRABAJOS)
+
+  if (!trabajosGuardados) {
+    return trabajosIniciales
+  }
+
+  try {
+    return JSON.parse(trabajosGuardados)
+  } catch {
+    return trabajosIniciales
+  }
+}
+
 function formatearFecha(fecha) {
   const fechaLocal = new Date(`${fecha}T00:00:00`)
 
@@ -45,9 +61,13 @@ function formatearFecha(fecha) {
 }
 
 function App() {
-  const [trabajos, setTrabajos] = useState(trabajosIniciales)
+  const [trabajos, setTrabajos] = useState(obtenerTrabajosGuardados)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [formulario, setFormulario] = useState(formularioInicial)
+
+  useEffect(() => {
+    localStorage.setItem(CLAVE_TRABAJOS, JSON.stringify(trabajos))
+  }, [trabajos])
 
   const resumen = [
     {
