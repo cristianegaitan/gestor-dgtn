@@ -1,121 +1,115 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+const resumen = [
+  {
+    id: 1,
+    etiqueta: 'Próximos eventos',
+    valor: 3,
+    detalle: 'En los próximos 30 días',
+  },
+  {
+    id: 2,
+    etiqueta: 'Trabajos en edición',
+    valor: 2,
+    detalle: 'Pendientes de finalizar',
+  },
+  {
+    id: 3,
+    etiqueta: 'Entregas pendientes',
+    valor: 1,
+    detalle: 'Esperando envío al cliente',
+  },
+]
 
+const trabajos = [
+  {
+    id: 1,
+    cliente: 'Sofía Martínez',
+    servicio: 'Fiesta de 15 años',
+    fecha: '28 de septiembre',
+    estado: 'Confirmado',
+    estadoClase: 'confirmado',
+  },
+  {
+    id: 2,
+    cliente: 'Colegio San Martín',
+    servicio: 'Egresados 2026',
+    fecha: '3 de octubre',
+    estado: 'Confirmado',
+    estadoClase: 'confirmado',
+  },
+  {
+    id: 3,
+    cliente: 'AST Agro',
+    servicio: 'Video institucional',
+    fecha: '8 de octubre',
+    estado: 'Planificación',
+    estadoClase: 'planificacion',
+  },
+]
+
+function App() {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <div className="app-shell">
+      <header className="topbar">
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
+          <p className="brand">DGTN · Gestión audiovisual</p>
+          <h1>Panel de trabajo</h1>
+          <p className="subtitle">
+            Administrá clientes, eventos y entregas desde un solo lugar.
           </p>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
+
+        <button className="primary-button" type="button">
+          + Nuevo trabajo
         </button>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
+      <main className="dashboard">
+        <section className="summary-grid" aria-label="Resumen de trabajos">
+          {resumen.map((item) => (
+            <article className="summary-card" key={item.id}>
+              <p>{item.etiqueta}</p>
+              <strong>{item.valor}</strong>
+              <span>{item.detalle}</span>
+            </article>
+          ))}
+        </section>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <section className="jobs-section">
+          <div className="section-heading">
+            <div>
+              <p className="section-label">Agenda</p>
+              <h2>Próximos trabajos</h2>
+            </div>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+            <button className="secondary-button" type="button">
+              Ver todos
+            </button>
+          </div>
+
+          <div className="jobs-grid">
+            {trabajos.map((trabajo) => (
+              <article className="job-card" key={trabajo.id}>
+                <p className="job-date">{trabajo.fecha}</p>
+                <h3>{trabajo.cliente}</h3>
+                <p className="job-service">{trabajo.servicio}</p>
+
+                <div className="job-footer">
+                  <span className={`status ${trabajo.estadoClase}`}>
+                    {trabajo.estado}
+                  </span>
+
+                  <button className="detail-button" type="button">
+                    Ver detalle
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
   )
 }
 
