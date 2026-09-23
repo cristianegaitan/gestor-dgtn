@@ -57,6 +57,7 @@ function formatearFecha(fecha) {
   return new Intl.DateTimeFormat('es-AR', {
     day: 'numeric',
     month: 'long',
+    year: 'numeric',
   }).format(fechaLocal)
 }
 
@@ -71,26 +72,30 @@ function App() {
   }, [trabajos])
 
   const trabajoSeleccionado =
-  trabajos.find((trabajo) => trabajo.id === idTrabajoSeleccionado) ?? null
+    trabajos.find((trabajo) => trabajo.id === idTrabajoSeleccionado) ?? null
 
   const resumen = [
     {
       id: 1,
-      etiqueta: 'Próximos eventos',
+      etiqueta: 'Trabajos registrados',
       valor: trabajos.length,
-      detalle: 'En los próximos 30 días',
+      detalle: 'Guardados en este navegador',
     },
     {
       id: 2,
-      etiqueta: 'Trabajos en edición',
-      valor: 2,
-      detalle: 'Pendientes de finalizar',
+      etiqueta: 'En planificación',
+      valor: trabajos.filter(
+        (trabajo) => trabajo.estado === 'Planificación'
+      ).length,
+      detalle: 'Trabajos en preparación',
     },
     {
       id: 3,
-      etiqueta: 'Entregas pendientes',
-      valor: 1,
-      detalle: 'Esperando envío al cliente',
+      etiqueta: 'Confirmados',
+      valor: trabajos.filter(
+        (trabajo) => trabajo.estado === 'Confirmado'
+      ).length,
+      detalle: 'Trabajos acordados',
     },
   ]
 
@@ -115,6 +120,7 @@ function App() {
       id: Date.now(),
       cliente: formulario.cliente.trim(),
       servicio: formulario.servicio.trim(),
+      fechaISO: formulario.fecha,
       fecha: formatearFecha(formulario.fecha),
       estado: formulario.estado,
       estadoClase:
@@ -146,6 +152,23 @@ function App() {
   }
 
   function cerrarDetalle() {
+    setTrabajoSeleccionado(null)
+  }
+
+  function eliminarTrabajoSeleccionado() {
+    if (!trabajoSeleccionado) return
+
+    const confirmado = window.confirm(
+      `¿Eliminar el trabajo de ${trabajoSeleccionado.cliente}?`
+    )
+
+    if (!confirmado) return
+
+    setTrabajos((trabajosActuales) =>
+      trabajosActuales.filter(
+        (trabajo) => trabajo.id !== trabajoSeleccionado.id
+      )
+    )
     setTrabajoSeleccionado(null)
   }
 
@@ -257,18 +280,21 @@ function App() {
 
       <main className="dashboard">
         {trabajoSeleccionado && (
-          <section
-            className="detail-panel"
-            aria-labelledby="detail-title"
-          >
-            <div className="section-heading">
+          <section className="detail-panel" aria-labelledby="detail-title">
+            <div className="detail-heading">
               <div>
                 <p className="section-label">Detalle del trabajo</p>
-                <h2 id="detail-title">
-                  {trabajoSeleccionado.cliente}
-                </h2>
+                <h2 id="detail-title">{trabajoSeleccionado.cliente}</h2>
                 <p>{trabajoSeleccionado.servicio}</p>
               </div>
+
+              <button
+                className="cancel-button"
+                type="button"
+                onClick={eliminarTrabajoSeleccionado}
+              >
+                Eliminar trabajo
+              </button>
 
               <button
                 className="secondary-button"
@@ -321,12 +347,10 @@ function App() {
           <div className="section-heading">
             <div>
               <p className="section-label">Agenda</p>
-              <h2>Próximos trabajos</h2>
+              <h2>Todos los trabajos</h2>
             </div>
 
-            <button className="secondary-button" type="button">
-              Ver todos
-            </button>
+            
           </div>
 
           <div className="jobs-grid">
@@ -354,7 +378,7 @@ function App() {
           </div>
         </section>
       </main>
-    </div>
+    </div >
   )
 }
 
