@@ -64,11 +64,14 @@ function App() {
   const [trabajos, setTrabajos] = useState(obtenerTrabajosGuardados)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [formulario, setFormulario] = useState(formularioInicial)
-  const [trabajoSeleccionado, setTrabajoSeleccionado] = useState(null)
+  const [idTrabajoSeleccionado, setTrabajoSeleccionado] = useState(null)
 
   useEffect(() => {
     localStorage.setItem(CLAVE_TRABAJOS, JSON.stringify(trabajos))
   }, [trabajos])
+
+  const trabajoSeleccionado =
+  trabajos.find((trabajo) => trabajo.id === idTrabajoSeleccionado) ?? null
 
   const resumen = [
     {
@@ -138,7 +141,7 @@ function App() {
   }
 
   function abrirDetalle(trabajo) {
-    setTrabajoSeleccionado(trabajo)
+    setTrabajoSeleccionado(trabajo.id)
     setMostrarFormulario(false)
   }
 
