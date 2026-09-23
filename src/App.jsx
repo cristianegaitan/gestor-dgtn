@@ -66,6 +66,7 @@ function App() {
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [formulario, setFormulario] = useState(formularioInicial)
   const [idTrabajoSeleccionado, setTrabajoSeleccionado] = useState(null)
+  const [idTrabajoEnEdicion, setIdTrabajoEnEdicion] = useState(null)
 
   useEffect(() => {
     localStorage.setItem(CLAVE_TRABAJOS, JSON.stringify(trabajos))
@@ -110,7 +111,20 @@ function App() {
 
   function cerrarFormulario() {
     setFormulario(formularioInicial)
+    setIdTrabajoEnEdicion(null)
     setMostrarFormulario(false)
+  }
+
+  function iniciarEdicion(trabajo) {
+    setIdTrabajoEnEdicion(trabajo.id)
+    setFormulario({
+      cliente: trabajo.cliente,
+      servicio: trabajo.servicio,
+      fecha: trabajo.fechaISO ?? '',
+      estado: trabajo.estado,
+    })
+    setTrabajoSeleccionado(null)
+    setMostrarFormulario(true)
   }
 
   function manejarEnvio(evento) {
@@ -127,6 +141,19 @@ function App() {
         formulario.estado === 'Confirmado'
           ? 'confirmado'
           : 'planificacion',
+    }
+
+    if (idTrabajoEnEdicion !== null) {
+      setTrabajos((trabajosActuales) =>
+        trabajosActuales.map((trabajo) =>
+          trabajo.id === idTrabajoEnEdicion
+            ? { ...trabajo, ...nuevoTrabajo, id: trabajo.id }
+            : trabajo,
+        ),
+      )
+
+      cerrarFormulario()
+      return
     }
 
     setTrabajos((trabajosActuales) => [
@@ -201,8 +228,12 @@ function App() {
           aria-labelledby="form-title"
         >
           <div className="form-heading">
-            <p className="section-label">Nuevo registro</p>
-            <h2 id="form-title">Agregar trabajo</h2>
+            <p className="section-label">
+              {idTrabajoEnEdicion !== null ? 'Edición de trabajo' : 'Nuevo registro'}
+            </p>
+            <h2 id="form-title">
+              {idTrabajoEnEdicion !== null ? 'Editar trabajo' : 'Agregar trabajo'}
+            </h2>
             <p>
               Ingresá los datos principales. Podrás agregar contrato,
               pagos y enlaces de entrega más adelante.
@@ -242,6 +273,8 @@ function App() {
                 id="fecha"
                 name="fecha"
                 type="date"
+                min="2000-01-01"
+                max="2100-12-31"
                 value={formulario.fecha}
                 onChange={manejarCambio}
                 required
@@ -271,7 +304,7 @@ function App() {
               </button>
 
               <button className="primary-button" type="submit">
-                Guardar trabajo
+                {idTrabajoEnEdicion !== null ? 'Guardar cambios' : 'Guardar trabajo'}
               </button>
             </div>
           </form>
@@ -287,6 +320,14 @@ function App() {
                 <h2 id="detail-title">{trabajoSeleccionado.cliente}</h2>
                 <p>{trabajoSeleccionado.servicio}</p>
               </div>
+
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => iniciarEdicion(trabajoSeleccionado)}
+              >
+                Editar trabajo
+              </button>
 
               <button
                 className="cancel-button"
@@ -350,7 +391,7 @@ function App() {
               <h2>Todos los trabajos</h2>
             </div>
 
-            
+
           </div>
 
           <div className="jobs-grid">
