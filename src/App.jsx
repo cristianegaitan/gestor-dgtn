@@ -64,6 +64,7 @@ function App() {
   const [trabajos, setTrabajos] = useState(obtenerTrabajosGuardados)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [formulario, setFormulario] = useState(formularioInicial)
+  const [trabajoSeleccionado, setTrabajoSeleccionado] = useState(null)
 
   useEffect(() => {
     localStorage.setItem(CLAVE_TRABAJOS, JSON.stringify(trabajos))
@@ -132,8 +133,17 @@ function App() {
       cerrarFormulario()
       return
     }
-
+    setTrabajoSeleccionado(null)
     setMostrarFormulario(true)
+  }
+
+  function abrirDetalle(trabajo) {
+    setTrabajoSeleccionado(trabajo)
+    setMostrarFormulario(false)
+  }
+
+  function cerrarDetalle() {
+    setTrabajoSeleccionado(null)
   }
 
   return (
@@ -243,6 +253,57 @@ function App() {
       )}
 
       <main className="dashboard">
+        {trabajoSeleccionado && (
+          <section
+            className="detail-panel"
+            aria-labelledby="detail-title"
+          >
+            <div className="section-heading">
+              <div>
+                <p className="section-label">Detalle del trabajo</p>
+                <h2 id="detail-title">
+                  {trabajoSeleccionado.cliente}
+                </h2>
+                <p>{trabajoSeleccionado.servicio}</p>
+              </div>
+
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={cerrarDetalle}
+              >
+                Cerrar detalle
+              </button>
+            </div>
+
+            <div className="detail-grid">
+              <article className="detail-card">
+                <h3>Evento</h3>
+                <p>
+                  <strong>Fecha:</strong> {trabajoSeleccionado.fecha}
+                </p>
+                <p>
+                  <strong>Estado:</strong> {trabajoSeleccionado.estado}
+                </p>
+              </article>
+
+              <article className="detail-card">
+                <h3>Contrato</h3>
+                <p>Pendiente de registrar</p>
+              </article>
+
+              <article className="detail-card">
+                <h3>Pagos</h3>
+                <p>Total, adelantos y saldo sin registrar</p>
+              </article>
+
+              <article className="detail-card">
+                <h3>Entrega</h3>
+                <p>Enlaces de Drive y Pixieset sin registrar</p>
+              </article>
+            </div>
+          </section>
+        )}
         <section className="summary-grid" aria-label="Resumen de trabajos">
           {resumen.map((item) => (
             <article className="summary-card" key={item.id}>
@@ -277,7 +338,11 @@ function App() {
                     {trabajo.estado}
                   </span>
 
-                  <button className="detail-button" type="button">
+                  <button
+                    className="detail-button"
+                    type="button"
+                    onClick={() => abrirDetalle(trabajo)}
+                  >
                     Ver detalle
                   </button>
                 </div>
