@@ -35,6 +35,8 @@ const formularioInicial = {
   servicio: '',
   fecha: '',
   estado: 'Planificación',
+  enlaceDrive: '',
+  enlacePixieset: '',
 }
 
 function obtenerTrabajosGuardados() {
@@ -122,6 +124,8 @@ function App() {
       servicio: trabajo.servicio,
       fecha: trabajo.fechaISO ?? '',
       estado: trabajo.estado,
+      enlaceDrive: trabajo.enlaceDrive ?? '',
+      enlacePixieset: trabajo.enlacePixieset ?? '',
     })
     setTrabajoSeleccionado(null)
     setMostrarFormulario(true)
@@ -137,6 +141,8 @@ function App() {
       fechaISO: formulario.fecha,
       fecha: formatearFecha(formulario.fecha),
       estado: formulario.estado,
+      enlaceDrive: formulario.enlaceDrive.trim(),
+      enlacePixieset: formulario.enlacePixieset.trim(),
       estadoClase:
         formulario.estado === 'Confirmado'
           ? 'confirmado'
@@ -294,6 +300,30 @@ function App() {
               </select>
             </div>
 
+            <div className="form-field">
+              <label htmlFor="enlaceDrive">Enlace de Google Drive</label>
+              <input
+                id="enlaceDrive"
+                name="enlaceDrive"
+                type="url"
+                value={formulario.enlaceDrive}
+                onChange={manejarCambio}
+                placeholder="https://drive.google.com/..."
+              />
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="enlacePixieset">Enlace de Pixieset</label>
+              <input
+                id="enlacePixieset"
+                name="enlacePixieset"
+                type="url"
+                value={formulario.enlacePixieset}
+                onChange={manejarCambio}
+                placeholder="https://dgtn75.pixieset.com/..."
+              />
+            </div>
+
             <div className="form-actions">
               <button
                 className="cancel-button"
@@ -369,7 +399,33 @@ function App() {
 
               <article className="detail-card">
                 <h3>Entrega</h3>
-                <p>Enlaces de Drive y Pixieset sin registrar</p>
+                {trabajoSeleccionado.enlaceDrive ? (
+                  <p>
+                    <a
+                      href={trabajoSeleccionado.enlaceDrive}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Abrir Drive
+                    </a>
+                  </p>
+                ) : (
+                  <p>Drive sin registrar</p>
+                )}
+
+                {trabajoSeleccionado.enlacePixieset ? (
+                  <p>
+                    <a
+                      href={trabajoSeleccionado.enlacePixieset}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Abrir Pixieset
+                    </a>
+                  </p>
+                ) : (
+                  <p>Pixieset sin registrar</p>
+                )}
               </article>
             </div>
           </section>
