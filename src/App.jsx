@@ -262,6 +262,35 @@ function App() {
     })
   }
 
+  function cambiarEstadoPago(cuentaId, pagoId) {
+    setTrabajos((trabajosActuales) =>
+      trabajosActuales.map((trabajo) =>
+        trabajo.id === idTrabajoSeleccionado
+          ? {
+            ...trabajo,
+            cuentasCobro: (trabajo.cuentasCobro ?? []).map((cuenta) =>
+              cuenta.id === cuentaId
+                ? {
+                  ...cuenta,
+                  pagos: (cuenta.pagos ?? []).map((pago) =>
+                    pago.id === pagoId
+                      ? {
+                        ...pago,
+                        estado: pago.estado === 'Confirmado'
+                          ? 'Pendiente'
+                          : 'Confirmado',
+                      }
+                      : pago,
+                  ),
+                }
+                : cuenta,
+            ),
+          }
+          : trabajo,
+      ),
+    )
+  }
+
   function manejarEnvio(evento) {
     evento.preventDefault()
 
@@ -581,6 +610,15 @@ function App() {
                               style: 'currency',
                               currency: 'ARS',
                             })} · {pago.medio} · {pago.fecha}
+                            
+                            <button
+                              className="secondary-button payment-status-button"
+                              type="button"
+                              onClick={() => cambiarEstadoPago(cuenta.id, pago.id)}
+                            >
+                              {pago.estado === 'Confirmado' ? 'Volver a pendiente' : 'Confirmar pago'}
+                            </button>
+
                           </p>
                         ))}
 
