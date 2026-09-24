@@ -64,6 +64,12 @@ function formatearFecha(fecha) {
   }).format(fechaLocal)
 }
 
+function calcularCobradoCentavos(cuenta) {
+  return (cuenta.pagos ?? [])
+    .filter((pago) => pago.estado === 'Confirmado')
+    .reduce((total, pago) => total + pago.montoCentavos, 0)
+}
+
 function App() {
   const [trabajos, setTrabajos] = useState(obtenerTrabajosGuardados)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
@@ -71,6 +77,14 @@ function App() {
   const [formularioCuenta, setFormularioCuenta] = useState({
     nombre: '',
     total: '',
+  })
+  const [formularioPago, setFormularioPago] = useState({
+    cuentaId: '',
+    monto: '',
+    fecha: '',
+    medio: 'Transferencia',
+    referencia: '',
+    estado: 'Pendiente',
   })
   const [idTrabajoSeleccionado, setTrabajoSeleccionado] = useState(null)
   const [idTrabajoEnEdicion, setIdTrabajoEnEdicion] = useState(null)
@@ -120,6 +134,15 @@ function App() {
     const { name, value } = evento.target
 
     setFormularioCuenta((datosActuales) => ({
+      ...datosActuales,
+      [name]: value,
+    }))
+  }
+
+  function manejarCambioPago(evento) {
+    const { name, value } = evento.target
+
+    setFormularioPago((datosActuales) => ({
       ...datosActuales,
       [name]: value,
     }))
@@ -182,6 +205,61 @@ function App() {
     )
 
     setFormularioCuenta({ nombre: '', total: '' })
+  }
+
+
+  function registrarPago(evento) {
+    evento.preventDefault()
+
+    const montoCentavos = Math.round(Number(formularioPago.monto) * 100)
+    const cuentaExiste = trabajoSeleccionado?.cuentasCobro?.some(
+      (cuenta) => cuenta.id === formularioPago.cuentaId,
+    )
+
+    if (
+      !cuentaExiste ||
+      !formularioPago.fecha ||
+      !Number.isSafeInteger(montoCentavos) ||
+      montoCentavos <= 0
+    ) {
+      return
+    }
+
+    const pagoNuevo = {
+      id: crypto.randomUUID(),
+      montoCentavos,
+      fecha: formularioPago.fecha,
+      medio: formularioPago.medio,
+      referencia: formularioPago.referencia.trim(),
+      estado: formularioPago.estado,
+    }
+
+    setTrabajos((trabajosActuales) =>
+      trabajosActuales.map((trabajo) =>
+        trabajo.id === idTrabajoSeleccionado
+          ? {
+            ...trabajo,
+            cuentasCobro: (trabajo.cuentasCobro ?? []).map((cuenta) =>
+              cuenta.id === formularioPago.cuentaId
+                ? {
+                  ...cuenta,
+                  pagos: [...(cuenta.pagos ?? []), pagoNuevo],
+                }
+                : cuenta,
+            ),
+          }
+          : trabajo,
+      ),
+    )
+
+    setFormularioPago({
+      cuentaId: '',
+      monto: '',
+      fecha: '',
+      medio: 'Transferencia',
+      referencia: '',
+      estado: 'Pendiente',
+    })
   }
 
   function manejarEnvio(evento) {
@@ -462,7 +540,7 @@ function App() {
                 </p>
               </article>
 
-              <article className="detail-card">
+              <article className="detail-card payments-card">
                 <h3>Pagos</h3>
                 <p>
                   Cuentas de cobro: {(trabajoSeleccionado.cuentasCobro ?? []).length}
@@ -481,6 +559,31 @@ function App() {
                               currency: 'ARS',
                             })}
                         </span>
+                        <span>
+                          Cobrado: {(calcularCobradoCentavos(cuenta) / 100).toLocaleString('es-AR', {
+                            style: 'currency',
+                            currency: 'ARS',
+                          })}
+                        </span>
+
+                        {typeof cuenta.totalCentavos === 'number' && (
+                          <span>
+                            Saldo: {((cuenta.totalCentavos - calcularCobradoCentavos(cuenta)) / 100).toLocaleString('es-AR', {
+                              style: 'currency',
+                              currency: 'ARS',
+                            })}
+                          </span>
+                        )}
+
+                        {(cuenta.pagos ?? []).map((pago) => (
+                          <p key={pago.id}>
+                            {pago.estado}: {(pago.montoCentavos / 100).toLocaleString('es-AR', {
+                              style: 'currency',
+                              currency: 'ARS',
+                            })} · {pago.medio} · {pago.fecha}
+                          </p>
+                        ))}
+
                       </li>
                     ))}
                   </ul>
@@ -516,9 +619,99 @@ function App() {
                     Agregar cuenta
                   </button>
                 </form>
+                {(trabajoSeleccionado.cuentasCobro ?? []).length > 0 && (
+                  <form className="payment-form" onSubmit={registrarPago}>
+                    <div className="form-field">
+                      <label htmlFor="cuentaPago">Cuenta del pago</label>
+                      <select
+                        id="cuentaPago"
+                        name="cuentaId"
+                        value={formularioPago.cuentaId}
+                        onChange={manejarCambioPago}
+                        required
+                      >
+                        <option value="">Seleccioná una cuenta</option>
+                        {(trabajoSeleccionado.cuentasCobro ?? []).map((cuenta) => (
+                          <option key={cuenta.id} value={cuenta.id}>
+                            {cuenta.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-field">
+                      <label htmlFor="montoPago">Monto en pesos</label>
+                      <input
+                        id="montoPago"
+                        name="monto"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={formularioPago.monto}
+                        onChange={manejarCambioPago}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label htmlFor="fechaPago">Fecha del movimiento</label>
+                      <input
+                        id="fechaPago"
+                        name="fecha"
+                        type="date"
+                        value={formularioPago.fecha}
+                        onChange={manejarCambioPago}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label htmlFor="medioPago">Medio de pago</label>
+                      <select
+                        id="medioPago"
+                        name="medio"
+                        value={formularioPago.medio}
+                        onChange={manejarCambioPago}
+                      >
+                        <option value="Transferencia">Transferencia</option>
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Otro">Otro</option>
+                      </select>
+                    </div>
+
+                    <div className="form-field">
+                      <label htmlFor="estadoPago">Estado del cobro</label>
+                      <select
+                        id="estadoPago"
+                        name="estado"
+                        value={formularioPago.estado}
+                        onChange={manejarCambioPago}
+                      >
+                        <option value="Pendiente">Pendiente de confirmar</option>
+                        <option value="Confirmado">Confirmado</option>
+                      </select>
+                    </div>
+
+                    <div className="form-field">
+                      <label htmlFor="referenciaPago">Referencia o nota (opcional)</label>
+                      <input
+                        id="referenciaPago"
+                        name="referencia"
+                        type="text"
+                        value={formularioPago.referencia}
+                        onChange={manejarCambioPago}
+                        placeholder="Ejemplo: transferencia 1234"
+                      />
+                    </div>
+
+                    <button className="secondary-button" type="submit">
+                      Registrar pago
+                    </button>
+                  </form>
+                )}
+
               </article>
 
-              <article className="detail-card">
+              <article className="detail-card delivery-card">
                 <h3>Entrega</h3>
                 {trabajoSeleccionado.enlaceDrive ? (
                   <p>

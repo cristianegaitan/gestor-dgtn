@@ -480,6 +480,7 @@ button:focus-visible {
 .account-list {
   list-style: none;
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
   gap: 8px;
   margin: 14px 0 18px;
   padding: 0;
@@ -522,4 +523,55 @@ button:focus-visible {
 
 .detail-panel {
   margin-bottom: 24px;
+}
+
+@media (min-width: 901px) {
+  .detail-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .delivery-card {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .payments-card {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+  .payments-card {
+    grid-column: 1 / -1;
+  }
+}
+
+.payments-card .account-form,
+.payments-card .payment-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 760px;
+}
+
+.payment-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.payments-card .account-form button,
+.payments-card .payment-form button {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+@media (max-width: 900px) {
+
+  .payments-card .account-list,
+  .payments-card .account-form,
+  .payments-card .payment-form {
+    grid-template-columns: 1fr;
+  }
 }
