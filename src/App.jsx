@@ -35,6 +35,7 @@ const formularioInicial = {
   servicio: '',
   fecha: '',
   estado: 'Planificación',
+  estadoContrato: 'Pendiente',
   enlaceDrive: '',
   enlacePixieset: '',
 }
@@ -124,6 +125,7 @@ function App() {
       servicio: trabajo.servicio,
       fecha: trabajo.fechaISO ?? '',
       estado: trabajo.estado,
+      estadoContrato: trabajo.estadoContrato ?? 'Pendiente',
       enlaceDrive: trabajo.enlaceDrive ?? '',
       enlacePixieset: trabajo.enlacePixieset ?? '',
     })
@@ -141,6 +143,7 @@ function App() {
       fechaISO: formulario.fecha,
       fecha: formatearFecha(formulario.fecha),
       estado: formulario.estado,
+      estadoContrato: formulario.estadoContrato,
       enlaceDrive: formulario.enlaceDrive.trim(),
       enlacePixieset: formulario.enlacePixieset.trim(),
       estadoClase:
@@ -299,6 +302,18 @@ function App() {
                 <option value="Confirmado">Confirmado</option>
               </select>
             </div>
+            <div className="form-field">
+              <label htmlFor="estadoContrato">Contrato</label>
+              <select
+                id="estadoContrato"
+                name="estadoContrato"
+                value={formulario.estadoContrato}
+                onChange={manejarCambio}
+              >
+                <option value="Pendiente">Pendiente de firma</option>
+                <option value="Firmado">Firmado</option>
+              </select>
+            </div>
 
             <div className="form-field">
               <label htmlFor="enlaceDrive">Enlace de Google Drive</label>
@@ -389,7 +404,11 @@ function App() {
 
               <article className="detail-card">
                 <h3>Contrato</h3>
-                <p>Pendiente de registrar</p>
+                <p>
+                  {trabajoSeleccionado.estadoContrato === 'Firmado'
+                    ? 'Firmado'
+                    : 'Pendiente de firma'}
+                </p>
               </article>
 
               <article className="detail-card">
