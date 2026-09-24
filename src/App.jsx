@@ -68,6 +68,10 @@ function App() {
   const [trabajos, setTrabajos] = useState(obtenerTrabajosGuardados)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [formulario, setFormulario] = useState(formularioInicial)
+  const [formularioCuenta, setFormularioCuenta] = useState({
+    nombre: '',
+    total: '',
+  })
   const [idTrabajoSeleccionado, setTrabajoSeleccionado] = useState(null)
   const [idTrabajoEnEdicion, setIdTrabajoEnEdicion] = useState(null)
 
@@ -112,6 +116,15 @@ function App() {
     }))
   }
 
+  function manejarCambioCuenta(evento) {
+    const { name, value } = evento.target
+
+    setFormularioCuenta((datosActuales) => ({
+      ...datosActuales,
+      [name]: value,
+    }))
+  }
+
   function cerrarFormulario() {
     setFormulario(formularioInicial)
     setIdTrabajoEnEdicion(null)
@@ -131,6 +144,44 @@ function App() {
     })
     setTrabajoSeleccionado(null)
     setMostrarFormulario(true)
+  }
+
+  function agregarCuenta(evento) {
+    evento.preventDefault()
+
+    if (idTrabajoSeleccionado === null) return
+
+    const nombre = formularioCuenta.nombre.trim()
+    const totalTexto = formularioCuenta.total.trim()
+    const totalCentavos =
+      totalTexto === '' ? null : Math.round(Number(totalTexto) * 100)
+
+    if (!nombre) return
+    if (
+      totalCentavos !== null &&
+      (!Number.isSafeInteger(totalCentavos) || totalCentavos < 0)
+    ) return
+
+    const cuentaNueva = {
+      id: crypto.randomUUID(),
+      nombre,
+      totalCentavos,
+      estadoContrato: 'Pendiente',
+      pagos: [],
+    }
+
+    setTrabajos((trabajosActuales) =>
+      trabajosActuales.map((trabajo) =>
+        trabajo.id === idTrabajoSeleccionado
+          ? {
+            ...trabajo,
+            cuentasCobro: [...(trabajo.cuentasCobro ?? []), cuentaNueva],
+          }
+          : trabajo,
+      ),
+    )
+
+    setFormularioCuenta({ nombre: '', total: '' })
   }
 
   function manejarEnvio(evento) {
@@ -167,7 +218,7 @@ function App() {
 
     setTrabajos((trabajosActuales) => [
       ...trabajosActuales,
-      nuevoTrabajo,
+      { ...nuevoTrabajo, cuentasCobro: [] },
     ])
 
     cerrarFormulario()
@@ -413,7 +464,58 @@ function App() {
 
               <article className="detail-card">
                 <h3>Pagos</h3>
-                <p>Total, adelantos y saldo sin registrar</p>
+                <p>
+                  Cuentas de cobro: {(trabajoSeleccionado.cuentasCobro ?? []).length}
+                </p>
+
+                {(trabajoSeleccionado.cuentasCobro ?? []).length > 0 && (
+                  <ul className="account-list">
+                    {(trabajoSeleccionado.cuentasCobro ?? []).map((cuenta) => (
+                      <li key={cuenta.id}>
+                        <strong>{cuenta.nombre}</strong>
+                        <span>
+                          {cuenta.totalCentavos === null
+                            ? 'Total sin registrar'
+                            : (cuenta.totalCentavos / 100).toLocaleString('es-AR', {
+                              style: 'currency',
+                              currency: 'ARS',
+                            })}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <form className="account-form" onSubmit={agregarCuenta}>
+                  <div className="form-field">
+                    <label htmlFor="nombreCuenta">Cliente o alumno</label>
+                    <input
+                      id="nombreCuenta"
+                      name="nombre"
+                      type="text"
+                      value={formularioCuenta.nombre}
+                      onChange={manejarCambioCuenta}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-field">
+                    <label htmlFor="totalCuenta">Total acordado en pesos (opcional)</label>
+                    <input
+                      id="totalCuenta"
+                      name="total"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formularioCuenta.total}
+                      onChange={manejarCambioCuenta}
+                    />
+                  </div>
+
+                  <button className="secondary-button" type="submit">
+                    Agregar cuenta
+                  </button>
+                </form>
               </article>
 
               <article className="detail-card">
