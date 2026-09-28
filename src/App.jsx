@@ -160,6 +160,29 @@ function App() {
     }))
   }
 
+  function descargarRespaldo() {
+    const datos = {
+      version: 1,
+      fechaRespaldo: new Date().toISOString(),
+      trabajos,
+      egresos,
+    }
+
+    const archivo = new Blob(
+      [JSON.stringify(datos, null, 2)],
+      { type: 'application/json' },
+    )
+    const url = URL.createObjectURL(archivo)
+    const enlace = document.createElement('a')
+
+    enlace.href = url
+    enlace.download = `gestor-dgtn-respaldo-${new Date().toISOString().slice(0, 10)}.json`
+    document.body.append(enlace)
+    enlace.click()
+    enlace.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
   function manejarCambioEgreso(evento) {
     const { name, value } = evento.target
 
@@ -979,6 +1002,13 @@ function App() {
               <p className="section-label">Finanzas</p>
               <h2 id="egresos-title">Egresos</h2>
             </div>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={descargarRespaldo}
+            >
+              Descargar respaldo
+            </button>
           </div>
 
           <form className="job-form" onSubmit={registrarEgreso}>
