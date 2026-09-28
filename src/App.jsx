@@ -3,6 +3,19 @@ import './App.css'
 
 const CLAVE_TRABAJOS = 'gestor-dgtn-trabajos'
 
+const CLAVE_EGRESOS = 'gestor-dgtn-egresos'
+
+function obtenerEgresosGuardados() {
+  try {
+    const egresosGuardados = JSON.parse(
+      localStorage.getItem(CLAVE_EGRESOS) ?? '[]',
+    )
+    return Array.isArray(egresosGuardados) ? egresosGuardados : []
+  } catch {
+    return []
+  }
+}
+
 const trabajosIniciales = [
   {
     id: 1,
@@ -40,6 +53,13 @@ const formularioInicial = {
   enlacePixieset: '',
 }
 
+const formularioEgresoInicial = {
+  concepto: '',
+  monto: '',
+  fecha: '',
+  trabajoId: '',
+}
+
 function obtenerTrabajosGuardados() {
   const trabajosGuardados = localStorage.getItem(CLAVE_TRABAJOS)
 
@@ -72,6 +92,8 @@ function calcularCobradoCentavos(cuenta) {
 
 function App() {
   const [trabajos, setTrabajos] = useState(obtenerTrabajosGuardados)
+  const [egresos, setEgresos] = useState(obtenerEgresosGuardados)
+  const [formularioEgreso, setFormularioEgreso] = useState(formularioEgresoInicial)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [formulario, setFormulario] = useState(formularioInicial)
   const [formularioCuenta, setFormularioCuenta] = useState({
@@ -95,6 +117,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem(CLAVE_TRABAJOS, JSON.stringify(trabajos))
   }, [trabajos])
+
+  useEffect(() => {
+    localStorage.setItem(CLAVE_EGRESOS, JSON.stringify(egresos))
+  }, [egresos])
 
   const trabajoSeleccionado =
     trabajos.find((trabajo) => trabajo.id === idTrabajoSeleccionado) ?? null
@@ -129,6 +155,15 @@ function App() {
 
     setFormulario((formularioActual) => ({
       ...formularioActual,
+      [name]: value,
+    }))
+  }
+
+  function manejarCambioEgreso(evento) {
+    const { name, value } = evento.target
+
+    setFormularioEgreso((datosActuales) => ({
+      ...datosActuales,
       [name]: value,
     }))
   }
@@ -242,6 +277,38 @@ function App() {
     setFormularioCuenta({ nombre: '', total: '' })
   }
 
+  function registrarEgreso(evento) {
+    evento.preventDefault()
+
+    const concepto = formularioEgreso.concepto.trim()
+    const montoCentavos = Math.round(Number(formularioEgreso.monto) * 100)
+    const trabajoId =
+      formularioEgreso.trabajoId === ''
+        ? null
+        : Number(formularioEgreso.trabajoId)
+
+    if (
+      !concepto ||
+      !formularioEgreso.fecha ||
+      !Number.isSafeInteger(montoCentavos) ||
+      montoCentavos <= 0 ||
+      (trabajoId !== null &&
+        !trabajos.some((trabajo) => trabajo.id === trabajoId))
+    ) {
+      return
+    }
+
+    const nuevoEgreso = {
+      id: crypto.randomUUID(),
+      concepto,
+      montoCentavos,
+      fecha: formularioEgreso.fecha,
+      trabajoId,
+    }
+
+    setEgresos((egresosActuales) => [...egresosActuales, nuevoEgreso])
+    setFormularioEgreso(formularioEgresoInicial)
+  }
 
   function registrarPago(evento) {
     evento.preventDefault()
@@ -849,6 +916,123 @@ function App() {
               <span>{item.detalle}</span>
             </article>
           ))}
+        </section>
+
+        <section className="jobs-section expenses-section" aria-labelledby="egresos-title">
+          <div className="section-heading">
+            <div>
+              <p className="section-label">Finanzas</p>
+              <h2 id="egresos-title">Egresos</h2>
+            </div>
+          </div>
+
+          <form className="job-form" onSubmit={registrarEgreso}>
+            <div className="form-field">
+              <label htmlFor="conceptoEgreso">Concepto</label>
+              <input
+                id="conceptoEgreso"
+                name="concepto"
+                type="text"
+                value={formularioEgreso.concepto}
+                onChange={manejarCambioEgreso}
+                placeholder="Ejemplo: impresión de fotos"
+                required
+              />
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="montoEgreso">Importe en pesos</label>
+              <input
+                id="montoEgreso"
+                name="monto"
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={formularioEgreso.monto}
+                onChange={manejarCambioEgreso}
+                required
+              />
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="fechaEgreso">Fecha del egreso</label>
+              <input
+                id="fechaEgreso"
+                name="fecha"
+                type="date"
+                min="2000-01-01"
+                max="2100-12-31"
+                value={formularioEgreso.fecha}
+                onChange={manejarCambioEgreso}
+                required
+              />
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="trabajoEgreso">Trabajo relacionado (opcional)</label>
+              <select
+                id="trabajoEgreso"
+                name="trabajoId"
+                value={formularioEgreso.trabajoId}
+                onChange={manejarCambioEgreso}
+              >
+                <option value="">Gasto general</option>
+                {trabajos.map((trabajo) => (
+                  <option key={trabajo.id} value={trabajo.id}>
+                    {trabajo.cliente} · {trabajo.servicio}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-actions">
+              <button className="primary-button" type="submit">
+                Registrar egreso
+              </button>
+            </div>
+          </form>
+          <div className="expense-history">
+            <h3>Egresos registrados</h3>
+
+            <p>
+              <strong>
+                Total: {(egresos.reduce(
+                  (suma, egreso) => suma + egreso.montoCentavos,
+                  0,
+                ) / 100).toLocaleString('es-AR', {
+                  style: 'currency',
+                  currency: 'ARS',
+                })}
+              </strong>
+            </p>
+
+            {egresos.length === 0 ? (
+              <p>Todavía no hay egresos registrados.</p>
+            ) : (
+              <ul className="expense-list">
+                {[...egresos].reverse().map((egreso) => (
+                  <li key={egreso.id}>
+                    <strong>{egreso.concepto}</strong>
+                    <span>
+                      {formatearFecha(egreso.fecha)} ·{' '}
+                      {egreso.trabajoId === null
+                        ? 'Gasto general'
+                        : (trabajos.find(
+                          (trabajo) => trabajo.id === egreso.trabajoId,
+                        )?.cliente ?? 'Trabajo eliminado')}
+                    </span>
+                    <strong>
+                      {(egreso.montoCentavos / 100).toLocaleString('es-AR', {
+                        style: 'currency',
+                        currency: 'ARS',
+                      })}
+                    </strong>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
         </section>
 
         <section className="jobs-section">
