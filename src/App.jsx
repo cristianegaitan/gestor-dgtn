@@ -277,6 +277,20 @@ function App() {
 
     setFormularioCuenta({ nombre: '', total: '' })
   }
+  function eliminarEgreso(egreso) {
+    if (!window.confirm(`¿Eliminar el egreso "${egreso.concepto}"?`)) {
+      return
+    }
+
+    setEgresos((egresosActuales) =>
+      egresosActuales.filter((item) => item.id !== egreso.id),
+    )
+
+    if (idEgresoEnEdicion === egreso.id) {
+      setIdEgresoEnEdicion(null)
+      setFormularioEgreso(formularioEgresoInicial)
+    }
+  }
 
   function iniciarEdicionEgreso(egreso) {
     setIdEgresoEnEdicion(egreso.id)
@@ -1078,7 +1092,13 @@ function App() {
                     >
                       Editar egreso
                     </button>
-
+                    <button
+                      className="detail-button"
+                      type="button"
+                      onClick={() => eliminarEgreso(egreso)}
+                    >
+                      Eliminar egreso
+                    </button>
                   </li>
                 ))}
               </ul>
