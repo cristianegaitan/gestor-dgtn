@@ -94,6 +94,7 @@ function App() {
   const [trabajos, setTrabajos] = useState(obtenerTrabajosGuardados)
   const [egresos, setEgresos] = useState(obtenerEgresosGuardados)
   const [formularioEgreso, setFormularioEgreso] = useState(formularioEgresoInicial)
+  const [idEgresoEnEdicion, setIdEgresoEnEdicion] = useState(null)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [formulario, setFormulario] = useState(formularioInicial)
   const [formularioCuenta, setFormularioCuenta] = useState({
@@ -277,6 +278,16 @@ function App() {
     setFormularioCuenta({ nombre: '', total: '' })
   }
 
+  function iniciarEdicionEgreso(egreso) {
+    setIdEgresoEnEdicion(egreso.id)
+    setFormularioEgreso({
+      concepto: egreso.concepto,
+      monto: String(egreso.montoCentavos / 100),
+      fecha: egreso.fecha,
+      trabajoId: egreso.trabajoId === null ? '' : String(egreso.trabajoId),
+    })
+  }
+
   function registrarEgreso(evento) {
     evento.preventDefault()
 
@@ -295,6 +306,26 @@ function App() {
       (trabajoId !== null &&
         !trabajos.some((trabajo) => trabajo.id === trabajoId))
     ) {
+      return
+    }
+
+    if (idEgresoEnEdicion !== null) {
+      setEgresos((egresosActuales) =>
+        egresosActuales.map((egreso) =>
+          egreso.id === idEgresoEnEdicion
+            ? {
+              ...egreso,
+              concepto,
+              montoCentavos,
+              fecha: formularioEgreso.fecha,
+              trabajoId,
+            }
+            : egreso,
+        ),
+      )
+
+      setIdEgresoEnEdicion(null)
+      setFormularioEgreso(formularioEgresoInicial)
       return
     }
 
@@ -986,8 +1017,20 @@ function App() {
             </div>
 
             <div className="form-actions">
+              {idEgresoEnEdicion !== null && (
+                <button
+                  className="cancel-button"
+                  type="button"
+                  onClick={() => {
+                    setIdEgresoEnEdicion(null)
+                    setFormularioEgreso(formularioEgresoInicial)
+                  }}
+                >
+                  Cancelar edición
+                </button>
+              )}
               <button className="primary-button" type="submit">
-                Registrar egreso
+                {idEgresoEnEdicion === null ? 'Registrar egreso' : 'Guardar cambios'}
               </button>
             </div>
           </form>
@@ -1027,6 +1070,15 @@ function App() {
                         currency: 'ARS',
                       })}
                     </strong>
+
+                    <button
+                      className="detail-button"
+                      type="button"
+                      onClick={() => iniciarEdicionEgreso(egreso)}
+                    >
+                      Editar egreso
+                    </button>
+
                   </li>
                 ))}
               </ul>
