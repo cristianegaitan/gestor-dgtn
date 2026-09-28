@@ -671,6 +671,16 @@ function App() {
                 <p className="section-label">Detalle del trabajo</p>
                 <h2 id="detail-title">{trabajoSeleccionado.cliente}</h2>
                 <p>{trabajoSeleccionado.servicio}</p>
+                <p>
+                  Egresos de este trabajo:{' '}
+                  {(egresos
+                    .filter((egreso) => egreso.trabajoId === trabajoSeleccionado.id)
+                    .reduce((suma, egreso) => suma + egreso.montoCentavos, 0) / 100)
+                    .toLocaleString('es-AR', {
+                      style: 'currency',
+                      currency: 'ARS',
+                    })}
+                </p>
               </div>
 
               <button
