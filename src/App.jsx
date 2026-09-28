@@ -78,6 +78,9 @@ function App() {
     nombre: '',
     total: '',
   })
+
+  const [idCuentaEnEdicion, setIdCuentaEnEdicion] = useState(null)
+
   const [formularioPago, setFormularioPago] = useState({
     cuentaId: '',
     monto: '',
@@ -169,6 +172,17 @@ function App() {
     setMostrarFormulario(true)
   }
 
+  function iniciarEdicionCuenta(cuenta) {
+    setIdCuentaEnEdicion(cuenta.id)
+    setFormularioCuenta({
+      nombre: cuenta.nombre,
+      total:
+        cuenta.totalCentavos === null
+          ? ''
+          : String(cuenta.totalCentavos / 100),
+    })
+  }
+
   function agregarCuenta(evento) {
     evento.preventDefault()
 
@@ -184,6 +198,27 @@ function App() {
       totalCentavos !== null &&
       (!Number.isSafeInteger(totalCentavos) || totalCentavos < 0)
     ) return
+
+    if (idCuentaEnEdicion !== null) {
+      setTrabajos((trabajosActuales) =>
+        trabajosActuales.map((trabajo) =>
+          trabajo.id === idTrabajoSeleccionado
+            ? {
+              ...trabajo,
+              cuentasCobro: (trabajo.cuentasCobro ?? []).map((cuenta) =>
+                cuenta.id === idCuentaEnEdicion
+                  ? { ...cuenta, nombre, totalCentavos }
+                  : cuenta,
+              ),
+            }
+            : trabajo,
+        ),
+      )
+
+      setIdCuentaEnEdicion(null)
+      setFormularioCuenta({ nombre: '', total: '' })
+      return
+    }
 
     const cuentaNueva = {
       id: crypto.randomUUID(),
@@ -341,6 +376,8 @@ function App() {
   }
 
   function abrirDetalle(trabajo) {
+    setIdCuentaEnEdicion(null)
+    setFormularioCuenta({ nombre: '', total: '' })
     setTrabajoSeleccionado(trabajo.id)
     setMostrarFormulario(false)
   }
@@ -580,6 +617,14 @@ function App() {
                     {(trabajoSeleccionado.cuentasCobro ?? []).map((cuenta) => (
                       <li key={cuenta.id}>
                         <strong>{cuenta.nombre}</strong>
+                        <button
+                          className="secondary-button"
+                          type="button"
+                          onClick={() => iniciarEdicionCuenta(cuenta)}
+                        >
+                          Editar cuenta
+                        </button>
+
                         <span>
                           {cuenta.totalCentavos === null
                             ? 'Total sin registrar'
@@ -610,7 +655,7 @@ function App() {
                               style: 'currency',
                               currency: 'ARS',
                             })} · {pago.medio} · {pago.fecha}
-                            
+
                             <button
                               className="secondary-button payment-status-button"
                               type="button"
@@ -654,8 +699,22 @@ function App() {
                   </div>
 
                   <button className="secondary-button" type="submit">
-                    Agregar cuenta
+                    {idCuentaEnEdicion === null ? 'Agregar cuenta' : 'Guardar cuenta'}
                   </button>
+
+                  {idCuentaEnEdicion !== null && (
+                    <button
+                      className="cancel-button"
+                      type="button"
+                      onClick={() => {
+                        setIdCuentaEnEdicion(null)
+                        setFormularioCuenta({ nombre: '', total: '' })
+                      }}
+                    >
+                      Cancelar edición
+                    </button>
+                  )}
+
                 </form>
                 {(trabajoSeleccionado.cuentasCobro ?? []).length > 0 && (
                   <form className="payment-form" onSubmit={registrarPago}>
