@@ -51,6 +51,8 @@ const formularioInicial = {
   estadoContrato: 'Pendiente',
   enlaceDrive: '',
   enlacePixieset: '',
+  fechaEnlacesEnviados: '',
+  estadoPendrive: 'No corresponde',
 }
 
 const formularioEgresoInicial = {
@@ -298,6 +300,8 @@ function App() {
       estadoContrato: trabajo.estadoContrato ?? 'Pendiente',
       enlaceDrive: trabajo.enlaceDrive ?? '',
       enlacePixieset: trabajo.enlacePixieset ?? '',
+      fechaEnlacesEnviados: trabajo.fechaEnlacesEnviados ?? '',
+      estadoPendrive: trabajo.estadoPendrive ?? 'No corresponde',
     })
     setTrabajoSeleccionado(null)
     setMostrarFormulario(true)
@@ -546,6 +550,8 @@ function App() {
       estadoContrato: formulario.estadoContrato,
       enlaceDrive: formulario.enlaceDrive.trim(),
       enlacePixieset: formulario.enlacePixieset.trim(),
+      fechaEnlacesEnviados: formulario.fechaEnlacesEnviados,
+      estadoPendrive: formulario.estadoPendrive,
       estadoClase:
         formulario.estado === 'Confirmado'
           ? 'confirmado'
@@ -739,6 +745,31 @@ function App() {
                 onChange={manejarCambio}
                 placeholder="https://dgtn75.pixieset.com/..."
               />
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="fechaEnlacesEnviados">Fecha de envío de enlaces (opcional)</label>
+              <input
+                id="fechaEnlacesEnviados"
+                name="fechaEnlacesEnviados"
+                type="date"
+                value={formulario.fechaEnlacesEnviados}
+                onChange={manejarCambio}
+              />
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="estadoPendrive">Pendrive</label>
+              <select
+                id="estadoPendrive"
+                name="estadoPendrive"
+                value={formulario.estadoPendrive}
+                onChange={manejarCambio}
+              >
+                <option value="No corresponde">No corresponde</option>
+                <option value="Pendiente">Pendiente de entregar</option>
+                <option value="Entregado">Entregado</option>
+              </select>
             </div>
 
             <div className="form-actions">
@@ -1052,6 +1083,18 @@ function App() {
 
               <article className="detail-card delivery-card">
                 <h3>Entrega</h3>
+                <p>
+                  <strong>Enlaces enviados:</strong>{' '}
+                  {trabajoSeleccionado.fechaEnlacesEnviados
+                    ? formatearFecha(trabajoSeleccionado.fechaEnlacesEnviados)
+                    : 'Sin registrar'}
+                </p>
+
+                <p>
+                  <strong>Pendrive:</strong>{' '}
+                  {trabajoSeleccionado.estadoPendrive ?? 'No corresponde'}
+                </p>
+
                 {trabajoSeleccionado.enlaceDrive ? (
                   <p>
                     <a
