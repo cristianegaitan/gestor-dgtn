@@ -834,6 +834,24 @@ function App() {
                               currency: 'ARS',
                             })}
                         </span>
+
+                        {typeof cuenta.totalCentavos === 'number' && (
+                          <>
+                            <span>
+                              Anticipo habitual (70 %): {(Math.round(cuenta.totalCentavos * 0.7) / 100).toLocaleString('es-AR', {
+                                style: 'currency',
+                                currency: 'ARS',
+                              })}
+                            </span>
+                            <span>
+                              Al entregar (30 %): {((cuenta.totalCentavos - Math.round(cuenta.totalCentavos * 0.7)) / 100).toLocaleString('es-AR', {
+                                style: 'currency',
+                                currency: 'ARS',
+                              })}
+                            </span>
+                          </>
+                        )}
+
                         <span>
                           Cobrado: {(calcularCobradoCentavos(cuenta) / 100).toLocaleString('es-AR', {
                             style: 'currency',
