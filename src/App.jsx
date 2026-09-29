@@ -108,6 +108,11 @@ function calcularFechaGuiaEntrega(fechaISO) {
   }).format(fecha)
 }
 
+function generarIdTrabajo() {
+  return Date.now()
+}
+
+
 function App() {
   const [trabajos, setTrabajos] = useState(obtenerTrabajosGuardados)
   const [egresos, setEgresos] = useState(obtenerEgresosGuardados)
@@ -541,7 +546,7 @@ function App() {
     evento.preventDefault()
 
     const nuevoTrabajo = {
-      id: Date.now(),
+      id: generarIdTrabajo(),
       cliente: formulario.cliente.trim(),
       servicio: formulario.servicio.trim(),
       fechaISO: formulario.fecha,
@@ -584,15 +589,18 @@ function App() {
       cerrarFormulario()
       return
     }
+
+    setFormulario(formularioInicial)
+    setIdTrabajoEnEdicion(null)
     setTrabajoSeleccionado(null)
     setMostrarFormulario(true)
   }
 
   function abrirDetalle(trabajo) {
+    cerrarFormulario()
     setIdCuentaEnEdicion(null)
     setFormularioCuenta({ nombre: '', total: '' })
     setTrabajoSeleccionado(trabajo.id)
-    setMostrarFormulario(false)
   }
 
   function cerrarDetalle() {
