@@ -183,6 +183,62 @@ function App() {
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
+  async function restaurarRespaldo(evento) {
+    const archivo = evento.target.files?.[0]
+    evento.target.value = ''
+
+    if (!archivo) return
+
+    try {
+      const datos = JSON.parse(await archivo.text())
+
+      const esValido =
+        datos?.version === 1 &&
+        Array.isArray(datos.trabajos) &&
+        Array.isArray(datos.egresos) &&
+        datos.trabajos.every(
+          (trabajo) =>
+            trabajo &&
+            typeof trabajo.id === 'number' &&
+            typeof trabajo.cliente === 'string' &&
+            typeof trabajo.servicio === 'string' &&
+            typeof trabajo.fecha === 'string' &&
+            typeof trabajo.estado === 'string' &&
+            (trabajo.cuentasCobro === undefined ||
+              (Array.isArray(trabajo.cuentasCobro) &&
+                trabajo.cuentasCobro.every(
+                  (cuenta) =>
+                    cuenta &&
+                    typeof cuenta.nombre === 'string' &&
+                    (cuenta.pagos === undefined || Array.isArray(cuenta.pagos)),
+                ))),
+        ) &&
+        datos.egresos.every(
+          (egreso) =>
+            egreso &&
+            typeof egreso.concepto === 'string' &&
+            typeof egreso.fecha === 'string' &&
+            Number.isSafeInteger(egreso.montoCentavos),
+        )
+
+      if (!esValido) {
+        window.alert('El archivo no es un respaldo válido de Gestor DGTN.')
+        return
+      }
+
+      if (!window.confirm('¿Reemplazar los trabajos y egresos actuales con este respaldo?')) {
+        return
+      }
+
+      setTrabajos(datos.trabajos)
+      setEgresos(datos.egresos)
+      setTrabajoSeleccionado(null)
+      cerrarFormulario()
+    } catch {
+      window.alert('No se pudo leer el archivo de respaldo.')
+    }
+  }
+
   function manejarCambioEgreso(evento) {
     const { name, value } = evento.target
 
@@ -1009,6 +1065,16 @@ function App() {
             >
               Descargar respaldo
             </button>
+          </div>
+
+          <div className="form-field">
+            <label htmlFor="archivoRespaldo">Restaurar respaldo</label>
+            <input
+              id="archivoRespaldo"
+              type="file"
+              accept=".json,application/json"
+              onChange={restaurarRespaldo}
+            />
           </div>
 
           <form className="job-form" onSubmit={registrarEgreso}>
