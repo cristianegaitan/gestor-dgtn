@@ -90,6 +90,22 @@ function calcularCobradoCentavos(cuenta) {
     .reduce((total, pago) => total + pago.montoCentavos, 0)
 }
 
+function calcularFechaGuiaEntrega(fechaISO) {
+  if (!fechaISO) return null
+
+  const fecha = new Date(`${fechaISO}T12:00:00`)
+
+  if (Number.isNaN(fecha.getTime())) return null
+
+  fecha.setDate(fecha.getDate() + 42)
+
+  return new Intl.DateTimeFormat('es-AR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(fecha)
+}
+
 function App() {
   const [trabajos, setTrabajos] = useState(obtenerTrabajosGuardados)
   const [egresos, setEgresos] = useState(obtenerEgresosGuardados)
@@ -793,6 +809,13 @@ function App() {
                 <p>
                   <strong>Fecha:</strong> {trabajoSeleccionado.fecha}
                 </p>
+                {trabajoSeleccionado.fechaISO && (
+                  <p>
+                    <strong>Fecha guía de entrega (6 semanas):</strong>{' '}
+                    {calcularFechaGuiaEntrega(trabajoSeleccionado.fechaISO)}
+                  </p>
+                )}
+
                 <p>
                   <strong>Estado:</strong> {trabajoSeleccionado.estado}
                 </p>
