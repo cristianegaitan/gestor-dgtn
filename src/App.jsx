@@ -242,11 +242,25 @@ function App() {
   const [idTrabajoEnEdicion, setIdTrabajoEnEdicion] = useState(null)
 
   useEffect(() => {
-    localStorage.setItem(CLAVE_TRABAJOS, JSON.stringify(trabajos))
+    try {
+      localStorage.setItem(CLAVE_TRABAJOS, JSON.stringify(trabajos))
+    } catch {
+      window.alert(
+        'No se pudieron guardar los trabajos en este navegador. ' +
+        'Descargá un respaldo antes de cerrar o recargar la aplicación.',
+      )
+    }
   }, [trabajos])
 
   useEffect(() => {
-    localStorage.setItem(CLAVE_EGRESOS, JSON.stringify(egresos))
+    try {
+      localStorage.setItem(CLAVE_EGRESOS, JSON.stringify(egresos))
+    } catch {
+      window.alert(
+        'No se pudieron guardar los egresos en este navegador. ' +
+        'Descargá un respaldo antes de cerrar o recargar la aplicación.',
+      )
+    }
   }, [egresos])
 
   const trabajoSeleccionado =
@@ -318,7 +332,7 @@ function App() {
     try {
       const datos = JSON.parse(await archivo.text())
 
-     const esValido = esRespaldoValido(datos)
+      const esValido = esRespaldoValido(datos)
 
       if (!esValido) {
         window.alert('El archivo no es un respaldo válido de Gestor DGTN.')
