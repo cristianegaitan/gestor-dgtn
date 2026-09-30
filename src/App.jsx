@@ -108,6 +108,109 @@ function calcularFechaGuiaEntrega(fechaISO) {
   }).format(fecha)
 }
 
+function esFechaISOValida(valor) {
+  if (typeof valor !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+    return false
+  }
+
+  const fecha = new Date(`${valor}T00:00:00Z`)
+
+  return !Number.isNaN(fecha.getTime()) &&
+    fecha.toISOString().slice(0, 10) === valor
+}
+
+function esPagoValido(pago) {
+  return pago &&
+    typeof pago.id === 'string' &&
+    Number.isSafeInteger(pago.montoCentavos) &&
+    pago.montoCentavos > 0 &&
+    esFechaISOValida(pago.fecha) &&
+    ['Pendiente', 'Confirmado'].includes(pago.estado) &&
+    typeof pago.medio === 'string' &&
+    typeof pago.referencia === 'string'
+}
+
+function esCuentaValida(cuenta) {
+  if (
+    !cuenta ||
+    typeof cuenta.id !== 'string' ||
+    typeof cuenta.nombre !== 'string' ||
+    !(cuenta.totalCentavos === null ||
+      (Number.isSafeInteger(cuenta.totalCentavos) &&
+        cuenta.totalCentavos >= 0))
+  ) {
+    return false
+  }
+
+  if (cuenta.pagos === undefined) return true
+
+  if (!Array.isArray(cuenta.pagos) || !cuenta.pagos.every(esPagoValido)) {
+    return false
+  }
+
+  return new Set(cuenta.pagos.map((pago) => pago.id)).size === cuenta.pagos.length
+}
+
+function esTrabajoValido(trabajo) {
+  if (
+    !trabajo ||
+    !Number.isSafeInteger(trabajo.id) ||
+    trabajo.id <= 0 ||
+    typeof trabajo.cliente !== 'string' ||
+    typeof trabajo.servicio !== 'string' ||
+    typeof trabajo.fecha !== 'string' ||
+    typeof trabajo.estado !== 'string' ||
+    (trabajo.fechaISO !== undefined &&
+      trabajo.fechaISO !== '' &&
+      !esFechaISOValida(trabajo.fechaISO)) ||
+    (trabajo.fechaEnlacesEnviados !== undefined &&
+      trabajo.fechaEnlacesEnviados !== '' &&
+      !esFechaISOValida(trabajo.fechaEnlacesEnviados))
+  ) {
+    return false
+  }
+
+  if (trabajo.cuentasCobro === undefined) return true
+
+  if (
+    !Array.isArray(trabajo.cuentasCobro) ||
+    !trabajo.cuentasCobro.every(esCuentaValida)
+  ) {
+    return false
+  }
+
+  return new Set(trabajo.cuentasCobro.map((cuenta) => cuenta.id)).size ===
+    trabajo.cuentasCobro.length
+}
+
+function esEgresoValido(egreso) {
+  return egreso &&
+    typeof egreso.id === 'string' &&
+    typeof egreso.concepto === 'string' &&
+    esFechaISOValida(egreso.fecha) &&
+    Number.isSafeInteger(egreso.montoCentavos) &&
+    egreso.montoCentavos > 0 &&
+    (egreso.trabajoId === null ||
+      (Number.isSafeInteger(egreso.trabajoId) && egreso.trabajoId > 0))
+}
+
+function esRespaldoValido(datos) {
+  if (
+    datos?.version !== 1 ||
+    !Array.isArray(datos.trabajos) ||
+    !Array.isArray(datos.egresos) ||
+    !datos.trabajos.every(esTrabajoValido) ||
+    !datos.egresos.every(esEgresoValido)
+  ) {
+    return false
+  }
+
+  return new Set(datos.trabajos.map((trabajo) => trabajo.id)).size ===
+    datos.trabajos.length &&
+    new Set(datos.egresos.map((egreso) => egreso.id)).size ===
+    datos.egresos.length
+}
+
 function generarIdTrabajo() {
   return Date.now()
 }
@@ -215,34 +318,7 @@ function App() {
     try {
       const datos = JSON.parse(await archivo.text())
 
-      const esValido =
-        datos?.version === 1 &&
-        Array.isArray(datos.trabajos) &&
-        Array.isArray(datos.egresos) &&
-        datos.trabajos.every(
-          (trabajo) =>
-            trabajo &&
-            typeof trabajo.id === 'number' &&
-            typeof trabajo.cliente === 'string' &&
-            typeof trabajo.servicio === 'string' &&
-            typeof trabajo.fecha === 'string' &&
-            typeof trabajo.estado === 'string' &&
-            (trabajo.cuentasCobro === undefined ||
-              (Array.isArray(trabajo.cuentasCobro) &&
-                trabajo.cuentasCobro.every(
-                  (cuenta) =>
-                    cuenta &&
-                    typeof cuenta.nombre === 'string' &&
-                    (cuenta.pagos === undefined || Array.isArray(cuenta.pagos)),
-                ))),
-        ) &&
-        datos.egresos.every(
-          (egreso) =>
-            egreso &&
-            typeof egreso.concepto === 'string' &&
-            typeof egreso.fecha === 'string' &&
-            Number.isSafeInteger(egreso.montoCentavos),
-        )
+     const esValido = esRespaldoValido(datos)
 
       if (!esValido) {
         window.alert('El archivo no es un respaldo válido de Gestor DGTN.')
