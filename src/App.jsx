@@ -337,6 +337,12 @@ function App() {
     0,
   )
 
+  const trabajosSinEnlacesEnviados = trabajos
+    .filter((trabajo) => trabajo.fechaISO && !trabajo.fechaEnlacesEnviados)
+    .sort((primero, segundo) =>
+      primero.fechaISO.localeCompare(segundo.fechaISO),
+    )
+
   const resumen = [
     {
       id: 1,
@@ -1318,6 +1324,40 @@ function App() {
           ))}
         </section>
 
+        <section className="jobs-section expenses-section" aria-labelledby="entregas-title">
+          <div className="section-heading">
+            <div>
+              <p className="section-label">Entregas</p>
+              <h2 id="entregas-title">Enlaces sin envío registrado</h2>
+            </div>
+          </div>
+
+          <p>Fecha guía: seis semanas después del evento.</p>
+
+          {trabajosSinEnlacesEnviados.length === 0 ? (
+            <p>No hay trabajos con fecha de evento y envío pendiente de registrar.</p>
+          ) : (
+            <ul className="expense-list">
+              {trabajosSinEnlacesEnviados.map((trabajo) => (
+                <li key={trabajo.id}>
+                  <strong>{trabajo.cliente}</strong>
+                  <span>Evento: {trabajo.fecha}</span>
+                  <span>
+                    Fecha guía: {calcularFechaGuiaEntrega(trabajo.fechaISO)}
+                  </span>
+                  <button
+                    className="detail-button"
+                    type="button"
+                    onClick={() => abrirDetalle(trabajo.id)}
+                  >
+                    Ver trabajo
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
         <section className="jobs-section expenses-section" aria-labelledby="cobros-pendientes-title">
           <div className="section-heading">
             <div>
@@ -1538,7 +1578,7 @@ function App() {
               <article className="job-card" key={trabajo.id}>
                 <p className="job-date">{trabajo.fecha}</p>
                 <h3>{trabajo.cliente}</h3>
-                                <p className="job-service">{trabajo.servicio}</p>
+                <p className="job-service">{trabajo.servicio}</p>
                 <p className="job-service">
                   Contrato: {trabajo.estadoContrato === 'Firmado'
                     ? 'Firmado'
