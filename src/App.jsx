@@ -770,11 +770,12 @@ function App() {
     setMostrarFormulario(true)
   }
 
-  function abrirDetalle(trabajo) {
+  function abrirDetalle(idTrabajo) {
     cerrarFormulario()
     setIdCuentaEnEdicion(null)
     setFormularioCuenta({ nombre: '', total: '' })
-    setTrabajoSeleccionado(trabajo.id)
+    setTrabajoSeleccionado(idTrabajo)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function cerrarDetalle() {
@@ -1340,6 +1341,13 @@ function App() {
                       currency: 'ARS',
                     })}
                   </span>
+                  <button
+                    className="detail-button"
+                    type="button"
+                    onClick={() => abrirDetalle(cuenta.trabajoId)}
+                  >
+                    Ver trabajo
+                  </button>
                 </li>
               ))}
             </ul>
@@ -1532,7 +1540,7 @@ function App() {
                   <button
                     className="detail-button"
                     type="button"
-                    onClick={() => abrirDetalle(trabajo)}
+                    onClick={() => abrirDetalle(trabajo.id)}
                   >
                     Ver detalle
                   </button>
