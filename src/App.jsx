@@ -322,6 +322,22 @@ function App() {
       return suma + Math.max(0, saldo)
     }, 0)
 
+  const cuentasPendientes = trabajos.flatMap((trabajo) =>
+    (trabajo.cuentasCobro ?? [])
+      .filter(
+        (cuenta) =>
+          cuenta.totalCentavos !== null &&
+          cuenta.totalCentavos > calcularCobradoCentavos(cuenta),
+      )
+      .map((cuenta) => ({
+        id: cuenta.id,
+        trabajoId: trabajo.id,
+        nombre: cuenta.nombre,
+        trabajo: trabajo.cliente,
+        saldoCentavos: cuenta.totalCentavos - calcularCobradoCentavos(cuenta),
+      })),
+  )
+
   const resumen = [
     {
       id: 1,
@@ -353,7 +369,7 @@ function App() {
         style: 'currency',
         currency: 'ARS',
       }),
-      detalle: 'Cuentas con total registrado',
+      detalle: 'Cuentas con saldo pendiente: ' + cuentasPendientes.length,
     },
   ]
 
@@ -1300,6 +1316,34 @@ function App() {
               <span>{item.detalle}</span>
             </article>
           ))}
+        </section>
+
+        <section className="jobs-section expenses-section" aria-labelledby="cobros-pendientes-title">
+          <div className="section-heading">
+            <div>
+              <p className="section-label">Finanzas</p>
+              <h2 id="cobros-pendientes-title">Cuentas por cobrar</h2>
+            </div>
+          </div>
+
+          {cuentasPendientes.length === 0 ? (
+            <p>No hay cuentas con saldo pendiente.</p>
+          ) : (
+            <ul className="expense-list">
+              {cuentasPendientes.map((cuenta) => (
+                <li key={`${cuenta.trabajoId}-${cuenta.id}`}>
+                  <strong>{cuenta.nombre}</strong>
+                  <span>Cliente del trabajo: {cuenta.trabajo}</span>
+                  <span>
+                    Saldo: {(cuenta.saldoCentavos / 100).toLocaleString('es-AR', {
+                      style: 'currency',
+                      currency: 'ARS',
+                    })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         <section className="jobs-section expenses-section" aria-labelledby="egresos-title">
