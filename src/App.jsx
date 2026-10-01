@@ -326,6 +326,9 @@ function App() {
         nombre: cuenta.nombre,
         trabajo: trabajo.cliente,
         saldoCentavos: cuenta.totalCentavos - calcularCobradoCentavos(cuenta),
+        pagosPendientesCentavos: (cuenta.pagos ?? [])
+          .filter((pago) => pago.estado === 'Pendiente')
+          .reduce((suma, pago) => suma + pago.montoCentavos, 0),
       })),
   )
 
@@ -1337,6 +1340,15 @@ function App() {
                       currency: 'ARS',
                     })}
                   </span>
+                  {cuenta.pagosPendientesCentavos > 0 && (
+                    <span>
+                      Pagos por confirmar:{' '}
+                      {(cuenta.pagosPendientesCentavos / 100).toLocaleString('es-AR', {
+                        style: 'currency',
+                        currency: 'ARS',
+                      })}
+                    </span>
+                  )}
                   <button
                     className="detail-button"
                     type="button"
