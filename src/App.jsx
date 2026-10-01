@@ -1538,7 +1538,12 @@ function App() {
               <article className="job-card" key={trabajo.id}>
                 <p className="job-date">{trabajo.fecha}</p>
                 <h3>{trabajo.cliente}</h3>
-                <p className="job-service">{trabajo.servicio}</p>
+                                <p className="job-service">{trabajo.servicio}</p>
+                <p className="job-service">
+                  Contrato: {trabajo.estadoContrato === 'Firmado'
+                    ? 'Firmado'
+                    : 'Pendiente de firma'}
+                </p>
 
                 <div className="job-footer">
                   <span className={`status ${trabajo.estadoClase}`}>
