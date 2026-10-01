@@ -313,6 +313,15 @@ function App() {
   const trabajoSeleccionado =
     trabajos.find((trabajo) => trabajo.id === idTrabajoSeleccionado) ?? null
 
+  const saldoPendienteCentavos = trabajos
+    .flatMap((trabajo) => trabajo.cuentasCobro ?? [])
+    .reduce((suma, cuenta) => {
+      if (cuenta.totalCentavos === null) return suma
+
+      const saldo = cuenta.totalCentavos - calcularCobradoCentavos(cuenta)
+      return suma + Math.max(0, saldo)
+    }, 0)
+
   const resumen = [
     {
       id: 1,
@@ -336,7 +345,19 @@ function App() {
       ).length,
       detalle: 'Trabajos acordados',
     },
+
+    {
+      id: 4,
+      etiqueta: 'Saldo por cobrar',
+      valor: (saldoPendienteCentavos / 100).toLocaleString('es-AR', {
+        style: 'currency',
+        currency: 'ARS',
+      }),
+      detalle: 'Cuentas con total registrado',
+    },
   ]
+
+
 
   function manejarCambio(evento) {
     const { name, value } = evento.target
