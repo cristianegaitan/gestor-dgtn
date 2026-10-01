@@ -7,12 +7,20 @@ const CLAVE_EGRESOS = 'gestor-dgtn-egresos'
 
 function obtenerEgresosGuardados() {
   try {
-    const egresosGuardados = JSON.parse(
-      localStorage.getItem(CLAVE_EGRESOS) ?? '[]',
-    )
-    return Array.isArray(egresosGuardados) ? egresosGuardados : []
+    const texto = localStorage.getItem(CLAVE_EGRESOS)
+    if (texto === null) return []
+
+    const datos = JSON.parse(texto)
+
+    return esRespaldoValido({
+      version: 1,
+      trabajos: [],
+      egresos: datos,
+    })
+      ? datos
+      : null
   } catch {
-    return []
+    return null
   }
 }
 
@@ -63,16 +71,21 @@ const formularioEgresoInicial = {
 }
 
 function obtenerTrabajosGuardados() {
-  const trabajosGuardados = localStorage.getItem(CLAVE_TRABAJOS)
-
-  if (!trabajosGuardados) {
-    return trabajosIniciales
-  }
-
   try {
-    return JSON.parse(trabajosGuardados)
+    const texto = localStorage.getItem(CLAVE_TRABAJOS)
+    if (texto === null) return trabajosIniciales
+
+    const datos = JSON.parse(texto)
+
+    return esRespaldoValido({
+      version: 1,
+      trabajos: datos,
+      egresos: [],
+    })
+      ? datos
+      : null
   } catch {
-    return trabajosIniciales
+    return null
   }
 }
 
@@ -241,7 +254,11 @@ function App() {
   const [idTrabajoSeleccionado, setTrabajoSeleccionado] = useState(null)
   const [idTrabajoEnEdicion, setIdTrabajoEnEdicion] = useState(null)
 
+  const datosCargados = trabajos !== null && egresos !== null
+
   useEffect(() => {
+    if (!datosCargados) return
+
     try {
       localStorage.setItem(CLAVE_TRABAJOS, JSON.stringify(trabajos))
     } catch {
@@ -250,9 +267,11 @@ function App() {
         'Descargá un respaldo antes de cerrar o recargar la aplicación.',
       )
     }
-  }, [trabajos])
+  }, [trabajos, datosCargados])
 
   useEffect(() => {
+    if (!datosCargados) return
+
     try {
       localStorage.setItem(CLAVE_EGRESOS, JSON.stringify(egresos))
     } catch {
@@ -261,7 +280,35 @@ function App() {
         'Descargá un respaldo antes de cerrar o recargar la aplicación.',
       )
     }
-  }, [egresos])
+  }, [egresos, datosCargados])
+
+  if (!datosCargados) {
+    return (
+      <div className="app-shell">
+        <main className="form-panel">
+          <h1>No se pudieron cargar los datos guardados</h1>
+          <p role="alert">
+            Se pausó el guardado para conservar los datos originales.
+          </p>
+          <p>
+            Podés recargar la página o restaurar un respaldo válido.
+          </p>
+
+          <div className="form-field">
+            <label htmlFor="respaldo-recuperacion">
+              Restaurar respaldo
+            </label>
+            <input
+              id="respaldo-recuperacion"
+              type="file"
+              accept=".json,application/json"
+              onChange={restaurarRespaldo}
+            />
+          </div>
+        </main>
+      </div>
+    )
+  }
 
   const trabajoSeleccionado =
     trabajos.find((trabajo) => trabajo.id === idTrabajoSeleccionado) ?? null
