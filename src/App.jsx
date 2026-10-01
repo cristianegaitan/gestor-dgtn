@@ -313,15 +313,6 @@ function App() {
   const trabajoSeleccionado =
     trabajos.find((trabajo) => trabajo.id === idTrabajoSeleccionado) ?? null
 
-  const saldoPendienteCentavos = trabajos
-    .flatMap((trabajo) => trabajo.cuentasCobro ?? [])
-    .reduce((suma, cuenta) => {
-      if (cuenta.totalCentavos === null) return suma
-
-      const saldo = cuenta.totalCentavos - calcularCobradoCentavos(cuenta)
-      return suma + Math.max(0, saldo)
-    }, 0)
-
   const cuentasPendientes = trabajos.flatMap((trabajo) =>
     (trabajo.cuentasCobro ?? [])
       .filter(
@@ -336,6 +327,11 @@ function App() {
         trabajo: trabajo.cliente,
         saldoCentavos: cuenta.totalCentavos - calcularCobradoCentavos(cuenta),
       })),
+  )
+
+  const saldoPendienteCentavos = cuentasPendientes.reduce(
+    (suma, cuenta) => suma + cuenta.saldoCentavos,
+    0,
   )
 
   const resumen = [
