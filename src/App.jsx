@@ -2,56 +2,6 @@ import { useState } from 'react'
 import { useDatosRemotos } from './lib/useDatosRemotos'
 import './App.css'
 
-const CLAVE_TRABAJOS = 'gestor-dgtn-trabajos'
-
-const CLAVE_EGRESOS = 'gestor-dgtn-egresos'
-
-function obtenerEgresosGuardados() {
-  try {
-    const texto = localStorage.getItem(CLAVE_EGRESOS)
-    if (texto === null) return []
-
-    const datos = JSON.parse(texto)
-
-    return esRespaldoValido({
-      version: 1,
-      trabajos: [],
-      egresos: datos,
-    })
-      ? datos
-      : null
-  } catch {
-    return null
-  }
-}
-
-const trabajosIniciales = [
-  {
-    id: 1,
-    cliente: 'Sofía Martínez',
-    servicio: 'Fiesta de 15 años',
-    fecha: '28 de septiembre',
-    estado: 'Confirmado',
-    estadoClase: 'confirmado',
-  },
-  {
-    id: 2,
-    cliente: 'Colegio San Martín',
-    servicio: 'Egresados 2026',
-    fecha: '3 de octubre',
-    estado: 'Confirmado',
-    estadoClase: 'confirmado',
-  },
-  {
-    id: 3,
-    cliente: 'AST Agro',
-    servicio: 'Video institucional',
-    fecha: '8 de octubre',
-    estado: 'Planificación',
-    estadoClase: 'planificacion',
-  },
-]
-
 const formularioInicial = {
   cliente: '',
   servicio: '',
@@ -69,25 +19,6 @@ const formularioEgresoInicial = {
   monto: '',
   fecha: '',
   trabajoId: '',
-}
-
-function obtenerTrabajosGuardados() {
-  try {
-    const texto = localStorage.getItem(CLAVE_TRABAJOS)
-    if (texto === null) return trabajosIniciales
-
-    const datos = JSON.parse(texto)
-
-    return esRespaldoValido({
-      version: 1,
-      trabajos: datos,
-      egresos: [],
-    })
-      ? datos
-      : null
-  } catch {
-    return null
-  }
 }
 
 function formatearFecha(fecha) {
@@ -345,34 +276,6 @@ function App() {
       ...formularioActual,
       [name]: value,
     }))
-  }
-
-  function importarDatosLocales() {
-    if (trabajos.length > 0 || egresos.length > 0) {
-      window.alert('Esta cuenta ya tiene datos en Supabase. No se importaron datos para evitar sobrescribirlos.')
-      return
-    }
-
-    const hayTrabajosLocales = localStorage.getItem(CLAVE_TRABAJOS) !== null
-    const hayEgresosLocales = localStorage.getItem(CLAVE_EGRESOS) !== null
-
-    if (!hayTrabajosLocales && !hayEgresosLocales) {
-      window.alert('No hay datos guardados en este navegador.')
-      return
-    }
-
-    const trabajosLocales = hayTrabajosLocales ? obtenerTrabajosGuardados() : []
-    const egresosLocales = obtenerEgresosGuardados()
-
-    if (!esRespaldoValido({ version: 1, trabajos: trabajosLocales, egresos: egresosLocales })) {
-      window.alert('Los datos guardados en este navegador no son válidos. Usá el archivo de respaldo.')
-      return
-    }
-
-    if (!window.confirm(`¿Importar ${trabajosLocales.length} trabajos y ${egresosLocales.length} egresos a esta cuenta?`)) return
-
-    setTrabajos(trabajosLocales)
-    setEgresos(egresosLocales)
   }
 
   function descargarRespaldo() {
@@ -1404,10 +1307,6 @@ function App() {
               Descargar respaldo
             </button>
           </div>
-
-          <button className="secondary-button" type="button" onClick={importarDatosLocales}>
-            Importar datos de este navegador
-          </button>
 
           <div className="form-field">
             <label htmlFor="archivoRespaldo">Restaurar respaldo</label>
