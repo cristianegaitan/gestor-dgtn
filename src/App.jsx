@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useDatosRemotos } from './lib/useDatosRemotos'
 import './App.css'
 
 const CLAVE_TRABAJOS = 'gestor-dgtn-trabajos'
@@ -230,8 +231,8 @@ function generarIdTrabajo() {
 
 
 function App() {
-  const [trabajos, setTrabajos] = useState(obtenerTrabajosGuardados)
-  const [egresos, setEgresos] = useState(obtenerEgresosGuardados)
+  const { trabajos, setTrabajos, egresos, setEgresos, errorCarga, errorGuardado, guardando } =
+    useDatosRemotos()
   const [formularioEgreso, setFormularioEgreso] = useState(formularioEgresoInicial)
   const [idEgresoEnEdicion, setIdEgresoEnEdicion] = useState(null)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
@@ -256,55 +257,12 @@ function App() {
 
   const datosCargados = trabajos !== null && egresos !== null
 
-  useEffect(() => {
-    if (!datosCargados) return
-
-    try {
-      localStorage.setItem(CLAVE_TRABAJOS, JSON.stringify(trabajos))
-    } catch {
-      window.alert(
-        'No se pudieron guardar los trabajos en este navegador. ' +
-        'Descargá un respaldo antes de cerrar o recargar la aplicación.',
-      )
-    }
-  }, [trabajos, datosCargados])
-
-  useEffect(() => {
-    if (!datosCargados) return
-
-    try {
-      localStorage.setItem(CLAVE_EGRESOS, JSON.stringify(egresos))
-    } catch {
-      window.alert(
-        'No se pudieron guardar los egresos en este navegador. ' +
-        'Descargá un respaldo antes de cerrar o recargar la aplicación.',
-      )
-    }
-  }, [egresos, datosCargados])
-
   if (!datosCargados) {
     return (
       <div className="app-shell">
         <main className="form-panel">
-          <h1>No se pudieron cargar los datos guardados</h1>
-          <p role="alert">
-            Se pausó el guardado para conservar los datos originales.
-          </p>
-          <p>
-            Podés recargar la página o restaurar un respaldo válido.
-          </p>
-
-          <div className="form-field">
-            <label htmlFor="respaldo-recuperacion">
-              Restaurar respaldo
-            </label>
-            <input
-              id="respaldo-recuperacion"
-              type="file"
-              accept=".json,application/json"
-              onChange={restaurarRespaldo}
-            />
-          </div>
+          <h1>{errorCarga ? 'Error de conexión' : 'Cargando datos...'}</h1>
+          {errorCarga && <p role="alert">{errorCarga}</p>}
         </main>
       </div>
     )
@@ -348,7 +306,7 @@ function App() {
       id: 1,
       etiqueta: 'Trabajos registrados',
       valor: trabajos.length,
-      detalle: 'Guardados en este navegador',
+      detalle: 'Guardados en Supabase',
     },
     {
       id: 2,
@@ -387,6 +345,34 @@ function App() {
       ...formularioActual,
       [name]: value,
     }))
+  }
+
+  function importarDatosLocales() {
+    if (trabajos.length > 0 || egresos.length > 0) {
+      window.alert('Esta cuenta ya tiene datos en Supabase. No se importaron datos para evitar sobrescribirlos.')
+      return
+    }
+
+    const hayTrabajosLocales = localStorage.getItem(CLAVE_TRABAJOS) !== null
+    const hayEgresosLocales = localStorage.getItem(CLAVE_EGRESOS) !== null
+
+    if (!hayTrabajosLocales && !hayEgresosLocales) {
+      window.alert('No hay datos guardados en este navegador.')
+      return
+    }
+
+    const trabajosLocales = hayTrabajosLocales ? obtenerTrabajosGuardados() : []
+    const egresosLocales = obtenerEgresosGuardados()
+
+    if (!esRespaldoValido({ version: 1, trabajos: trabajosLocales, egresos: egresosLocales })) {
+      window.alert('Los datos guardados en este navegador no son válidos. Usá el archivo de respaldo.')
+      return
+    }
+
+    if (!window.confirm(`¿Importar ${trabajosLocales.length} trabajos y ${egresosLocales.length} egresos a esta cuenta?`)) return
+
+    setTrabajos(trabajosLocales)
+    setEgresos(egresosLocales)
   }
 
   function descargarRespaldo() {
@@ -806,6 +792,8 @@ function App() {
 
   return (
     <div className="app-shell">
+      {errorGuardado && <p role="alert">{errorGuardado}</p>}
+      {!errorGuardado && <p role="status">{guardando ? 'Guardando en Supabase...' : 'Datos sincronizados con Supabase'}</p>}
       <header className="topbar">
         <div>
           <p className="brand">DGTN · Gestión audiovisual</p>
@@ -1416,6 +1404,10 @@ function App() {
               Descargar respaldo
             </button>
           </div>
+
+          <button className="secondary-button" type="button" onClick={importarDatosLocales}>
+            Importar datos de este navegador
+          </button>
 
           <div className="form-field">
             <label htmlFor="archivoRespaldo">Restaurar respaldo</label>

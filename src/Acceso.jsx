@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabaseClient'
 
+
 export default function Acceso({ children }) {
   const [sesion, setSesion] = useState(undefined)
   const [correo, setCorreo] = useState('')
@@ -87,6 +88,7 @@ export default function Acceso({ children }) {
       <button type="button" onClick={() => supabase.auth.signOut()}>
         Cerrar sesión
       </button>
+
       {children}
     </>
   )
