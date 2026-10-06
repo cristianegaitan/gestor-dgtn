@@ -85,9 +85,15 @@ export default function Acceso({ children }) {
 
   return (
     <>
-      <button type="button" onClick={() => supabase.auth.signOut()}>
-        Cerrar sesión
-      </button>
+      <div className="session-bar">
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={() => supabase.auth.signOut()}
+        >
+          Cerrar sesión
+        </button>
+      </div>
 
       {children}
     </>

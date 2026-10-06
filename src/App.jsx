@@ -1308,14 +1308,18 @@ function App() {
             </button>
           </div>
 
-          <div className="form-field">
+          <div className="form-field backup-picker">
             <label htmlFor="archivoRespaldo">Restaurar respaldo</label>
             <input
+              className="backup-input"
               id="archivoRespaldo"
               type="file"
               accept=".json,application/json"
               onChange={restaurarRespaldo}
             />
+            <label className="secondary-button backup-file-button" htmlFor="archivoRespaldo">
+              Elegir archivo .json
+            </label>
           </div>
 
           <form className="job-form" onSubmit={registrarEgreso}>
