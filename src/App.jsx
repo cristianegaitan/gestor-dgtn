@@ -696,7 +696,7 @@ function App() {
   return (
     <div className="app-shell">
       {errorGuardado && <p role="alert">{errorGuardado}</p>}
-      {!errorGuardado && <p role="status">{guardando ? 'Guardando en Supabase...' : 'Datos sincronizados con Supabase'}</p>}
+      {!errorGuardado && guardando && <p role="status">Guardando cambios...</p>}
       <header className="topbar">
         <div>
           <p className="brand">DGTN · Gestión audiovisual</p>
