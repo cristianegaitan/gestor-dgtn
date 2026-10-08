@@ -21,6 +21,15 @@ const formularioEgresoInicial = {
   trabajoId: '',
 }
 
+const formularioPagoInicial = {
+  cuentaId: '',
+  monto: '',
+  fecha: '',
+  medio: 'Transferencia',
+  referencia: '',
+  estado: 'Pendiente',
+}
+
 function formatearFecha(fecha) {
   const fechaLocal = new Date(`${fecha}T00:00:00`)
 
@@ -175,14 +184,8 @@ function App() {
 
   const [idCuentaEnEdicion, setIdCuentaEnEdicion] = useState(null)
 
-  const [formularioPago, setFormularioPago] = useState({
-    cuentaId: '',
-    monto: '',
-    fecha: '',
-    medio: 'Transferencia',
-    referencia: '',
-    estado: 'Pendiente',
-  })
+  const [formularioPago, setFormularioPago] = useState(formularioPagoInicial)
+  const [pagoEnEdicion, setPagoEnEdicion] = useState(null)
   const [idTrabajoSeleccionado, setTrabajoSeleccionado] = useState(null)
   const [idTrabajoEnEdicion, setIdTrabajoEnEdicion] = useState(null)
 
@@ -355,6 +358,49 @@ function App() {
       ...datosActuales,
       [name]: value,
     }))
+  }
+
+  function cancelarEdicionPago() {
+    setPagoEnEdicion(null)
+    setFormularioPago(formularioPagoInicial)
+  }
+
+  function iniciarEdicionPago(cuenta, pago) {
+    setPagoEnEdicion({ cuentaId: cuenta.id, pagoId: pago.id })
+    setFormularioPago({
+      cuentaId: cuenta.id,
+      monto: String(pago.montoCentavos / 100),
+      fecha: pago.fecha,
+      medio: pago.medio,
+      referencia: pago.referencia,
+      estado: pago.estado,
+    })
+    document.getElementById('formularioPago')?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  function eliminarPago(cuenta, pago) {
+    if (!window.confirm(`¿Eliminar el pago de ${(pago.montoCentavos / 100).toLocaleString('es-AR', {
+      style: 'currency', currency: 'ARS',
+    })} de ${cuenta.nombre}? Esta acción modificará el saldo.`)) return
+
+    setTrabajos((trabajosActuales) =>
+      trabajosActuales.map((trabajo) =>
+        trabajo.id === idTrabajoSeleccionado
+          ? {
+            ...trabajo,
+            cuentasCobro: (trabajo.cuentasCobro ?? []).map((item) =>
+              item.id === cuenta.id
+                ? { ...item, pagos: (item.pagos ?? []).filter((otro) => otro.id !== pago.id) }
+                : item,
+            ),
+          }
+          : trabajo,
+      ),
+    )
+
+    if (pagoEnEdicion?.cuentaId === cuenta.id && pagoEnEdicion.pagoId === pago.id) {
+      cancelarEdicionPago()
+    }
   }
 
   function cerrarFormulario() {
@@ -537,15 +583,21 @@ function App() {
 
     if (
       !cuentaExiste ||
-      !formularioPago.fecha ||
+      !esFechaISOValida(formularioPago.fecha) ||
       !Number.isSafeInteger(montoCentavos) ||
-      montoCentavos <= 0
+      montoCentavos <= 0 ||
+      (pagoEnEdicion !== null &&
+        (pagoEnEdicion.cuentaId !== formularioPago.cuentaId ||
+          !trabajoSeleccionado.cuentasCobro.some((cuenta) =>
+            cuenta.id === pagoEnEdicion.cuentaId &&
+            (cuenta.pagos ?? []).some((pago) => pago.id === pagoEnEdicion.pagoId),
+          )))
     ) {
       return
     }
 
-    const pagoNuevo = {
-      id: crypto.randomUUID(),
+    const idPagoNuevo = pagoEnEdicion === null ? crypto.randomUUID() : null
+    const datosPago = {
       montoCentavos,
       fecha: formularioPago.fecha,
       medio: formularioPago.medio,
@@ -562,7 +614,13 @@ function App() {
               cuenta.id === formularioPago.cuentaId
                 ? {
                   ...cuenta,
-                  pagos: [...(cuenta.pagos ?? []), pagoNuevo],
+                  pagos: pagoEnEdicion === null
+                    ? [...(cuenta.pagos ?? []), { id: idPagoNuevo, ...datosPago }]
+                    : (cuenta.pagos ?? []).map((pago) =>
+                      pago.id === pagoEnEdicion.pagoId
+                        ? { ...pago, ...datosPago }
+                        : pago,
+                    ),
                 }
                 : cuenta,
             ),
@@ -571,17 +629,16 @@ function App() {
       ),
     )
 
-    setFormularioPago({
-      cuentaId: '',
-      monto: '',
-      fecha: '',
-      medio: 'Transferencia',
-      referencia: '',
-      estado: 'Pendiente',
-    })
+    cancelarEdicionPago()
   }
 
   function cambiarEstadoPago(cuentaId, pagoId) {
+    if (pagoEnEdicion?.cuentaId === cuentaId && pagoEnEdicion.pagoId === pagoId) {
+      setFormularioPago((actual) => ({
+        ...actual,
+        estado: actual.estado === 'Confirmado' ? 'Pendiente' : 'Confirmado',
+      }))
+    }
     setTrabajos((trabajosActuales) =>
       trabajosActuales.map((trabajo) =>
         trabajo.id === idTrabajoSeleccionado
@@ -666,6 +723,7 @@ function App() {
 
   function abrirDetalle(idTrabajo) {
     cerrarFormulario()
+    cancelarEdicionPago()
     setIdCuentaEnEdicion(null)
     setFormularioCuenta({ nombre: '', total: '' })
     setTrabajoSeleccionado(idTrabajo)
@@ -673,6 +731,7 @@ function App() {
   }
 
   function cerrarDetalle() {
+    cancelarEdicionPago()
     setTrabajoSeleccionado(null)
   }
 
@@ -1007,6 +1066,7 @@ function App() {
                               style: 'currency',
                               currency: 'ARS',
                             })} · {pago.medio} · {pago.fecha}
+                            {pago.referencia && <> · Referencia: {pago.referencia}</>}
 
                             <button
                               className="secondary-button payment-status-button"
@@ -1014,6 +1074,21 @@ function App() {
                               onClick={() => cambiarEstadoPago(cuenta.id, pago.id)}
                             >
                               {pago.estado === 'Confirmado' ? 'Volver a pendiente' : 'Confirmar pago'}
+                            </button>
+
+                            <button
+                              className="secondary-button payment-status-button"
+                              type="button"
+                              onClick={() => iniciarEdicionPago(cuenta, pago)}
+                            >
+                              Editar pago
+                            </button>
+                            <button
+                              className="secondary-button payment-status-button"
+                              type="button"
+                              onClick={() => eliminarPago(cuenta, pago)}
+                            >
+                              Eliminar pago
                             </button>
 
                           </p>
@@ -1069,7 +1144,7 @@ function App() {
 
                 </form>
                 {(trabajoSeleccionado.cuentasCobro ?? []).length > 0 && (
-                  <form className="payment-form" onSubmit={registrarPago}>
+                  <form id="formularioPago" className="payment-form" onSubmit={registrarPago}>
                     <div className="form-field">
                       <label htmlFor="cuentaPago">Cuenta del pago</label>
                       <select
@@ -1077,6 +1152,7 @@ function App() {
                         name="cuentaId"
                         value={formularioPago.cuentaId}
                         onChange={manejarCambioPago}
+                        disabled={pagoEnEdicion !== null}
                         required
                       >
                         <option value="">Seleccioná una cuenta</option>
@@ -1153,8 +1229,13 @@ function App() {
                     </div>
 
                     <button className="secondary-button" type="submit">
-                      Registrar pago
+                      {pagoEnEdicion === null ? 'Registrar pago' : 'Guardar pago'}
                     </button>
+                    {pagoEnEdicion !== null && (
+                      <button className="cancel-button" type="button" onClick={cancelarEdicionPago}>
+                        Cancelar edición
+                      </button>
+                    )}
                   </form>
                 )}
 
