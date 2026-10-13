@@ -12,6 +12,21 @@
     #f4f6f8;
 }
 
+.sync-error {
+  width: min(1120px, 100%);
+  box-sizing: border-box;
+  margin: 0 auto 1.5rem;
+  padding: 1rem;
+  border: 1px solid #f0a9a9;
+  border-radius: 0.75rem;
+  color: #7f1d1d;
+  background: #fff2f2;
+}
+
+.sync-error p {
+  margin: 0 0 0.75rem;
+}
+
 .topbar,
 .dashboard {
   width: min(1120px, 100%);

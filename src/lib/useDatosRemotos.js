@@ -1,33 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
+import { aplicarCambios } from './aplicarCambios'
 import {
   cargarDatosRemotos,
+  ConflictoRemotoError,
   eliminarEgresoRemoto,
   eliminarTrabajoRemoto,
   guardarEgresoRemoto,
   guardarTrabajoRemoto,
 } from './datosRemotos'
-
-async function aplicarCambios(anteriores, actuales, guardar, eliminar, incluirOrden = false) {
-  const anterioresPorId = new Map(
-    anteriores.map((item, orden) => [item.id, { item, orden }]),
-  )
-  const idsActuales = new Set(actuales.map((item) => item.id))
-
-  for (const [orden, item] of actuales.entries()) {
-    const anterior = anterioresPorId.get(item.id)
-    if (
-      !anterior ||
-      JSON.stringify(anterior.item) !== JSON.stringify(item) ||
-      (incluirOrden && anterior.orden !== orden)
-    ) {
-      await guardar(item, orden)
-    }
-  }
-
-  for (const item of anteriores) {
-    if (!idsActuales.has(item.id)) await eliminar(item.id)
-  }
-}
 
 export function useDatosRemotos() {
   const [trabajos, setTrabajos] = useState(null)
@@ -35,9 +15,15 @@ export function useDatosRemotos() {
   const [errorCarga, setErrorCarga] = useState('')
   const [errorGuardado, setErrorGuardado] = useState('')
   const [guardando, setGuardando] = useState(false)
-  const sincronizados = useRef({ trabajos: null, egresos: null })
+  const sincronizados = useRef({
+    trabajos: null,
+    egresos: null,
+    revisionesTrabajos: {},
+    revisionesEgresos: {},
+  })
   const cola = useRef(Promise.resolve())
   const ultimaTarea = useRef(0)
+  const guardadoBloqueado = useRef(false)
 
   useEffect(() => {
     let activo = true
@@ -64,19 +50,28 @@ export function useDatosRemotos() {
     const numeroTarea = ++ultimaTarea.current
     cola.current = cola.current
       .then(async () => {
+        if (guardadoBloqueado.current) return
         setGuardando(true)
         if (sincronizados.current.trabajos === null) return
-        await aplicarCambios(
+        const revisionesTrabajos = await aplicarCambios(
           sincronizados.current.trabajos,
           trabajos,
-          guardarTrabajoRemoto,
+          sincronizados.current.revisionesTrabajos,
+          (trabajo, _orden, revision) => guardarTrabajoRemoto(trabajo, revision),
           eliminarTrabajoRemoto,
         )
-        sincronizados.current.trabajos = trabajos
+        sincronizados.current = {
+          ...sincronizados.current,
+          trabajos,
+          revisionesTrabajos,
+        }
       })
       .catch((error) => {
         console.error('No se pudieron guardar los trabajos:', error)
-        setErrorGuardado('No se pudo guardar un cambio en Supabase. Descargá un respaldo antes de cerrar la página.')
+        guardadoBloqueado.current = true
+        setErrorGuardado(error instanceof ConflictoRemotoError
+          ? 'Otro dispositivo cambió estos datos. Se detuvo el guardado: descargá un respaldo, recargá y compará antes de restaurarlo.'
+          : 'No se pudo guardar un cambio en Supabase. Se detuvo el guardado: descargá un respaldo antes de recargar.')
       })
       .finally(() => {
         if (numeroTarea === ultimaTarea.current) setGuardando(false)
@@ -89,20 +84,29 @@ export function useDatosRemotos() {
     const numeroTarea = ++ultimaTarea.current
     cola.current = cola.current
       .then(async () => {
+        if (guardadoBloqueado.current) return
         setGuardando(true)
         if (sincronizados.current.egresos === null) return
-        await aplicarCambios(
+        const revisionesEgresos = await aplicarCambios(
           sincronizados.current.egresos,
           egresos,
+          sincronizados.current.revisionesEgresos,
           guardarEgresoRemoto,
           eliminarEgresoRemoto,
           true,
         )
-        sincronizados.current.egresos = egresos
+        sincronizados.current = {
+          ...sincronizados.current,
+          egresos,
+          revisionesEgresos,
+        }
       })
       .catch((error) => {
         console.error('No se pudieron guardar los egresos:', error)
-        setErrorGuardado('No se pudo guardar un cambio en Supabase. Descargá un respaldo antes de cerrar la página.')
+        guardadoBloqueado.current = true
+        setErrorGuardado(error instanceof ConflictoRemotoError
+          ? 'Otro dispositivo cambió estos datos. Se detuvo el guardado: descargá un respaldo, recargá y compará antes de restaurarlo.'
+          : 'No se pudo guardar un cambio en Supabase. Se detuvo el guardado: descargá un respaldo antes de recargar.')
       })
       .finally(() => {
         if (numeroTarea === ultimaTarea.current) setGuardando(false)

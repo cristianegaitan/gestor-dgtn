@@ -754,7 +754,14 @@ function App() {
 
   return (
     <div className="app-shell">
-      {errorGuardado && <p role="alert">{errorGuardado}</p>}
+      {errorGuardado && (
+        <div className="sync-error" role="alert">
+          <p>{errorGuardado}</p>
+          <button className="secondary-button" type="button" onClick={descargarRespaldo}>
+            Descargar respaldo
+          </button>
+        </div>
+      )}
       {!errorGuardado && guardando && <p role="status">Guardando cambios...</p>}
       <header className="topbar">
         <div>

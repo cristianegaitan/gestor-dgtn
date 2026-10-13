@@ -1,5 +1,12 @@
 import { supabase } from './supabaseClient'
 
+export class ConflictoRemotoError extends Error {
+  constructor() {
+    super('Este registro cambió en otro dispositivo. Recargá antes de modificarlo.')
+    this.name = 'ConflictoRemotoError'
+  }
+}
+
 async function obtenerUsuarioId() {
   const { data, error } = await supabase.auth.getUser()
 
@@ -11,8 +18,8 @@ async function obtenerUsuarioId() {
 
 export async function cargarDatosRemotos() {
   const [respuestaTrabajos, respuestaEgresos] = await Promise.all([
-    supabase.from('trabajos').select('datos').order('id'),
-    supabase.from('egresos').select('datos').order('orden'),
+    supabase.from('trabajos').select('datos, revision').order('id'),
+    supabase.from('egresos').select('datos, revision').order('orden'),
   ])
 
   if (respuestaTrabajos.error) throw respuestaTrabajos.error
@@ -21,56 +28,74 @@ export async function cargarDatosRemotos() {
   return {
     trabajos: respuestaTrabajos.data.map((fila) => fila.datos),
     egresos: respuestaEgresos.data.map((fila) => fila.datos),
+    revisionesTrabajos: Object.fromEntries(
+      respuestaTrabajos.data.map((fila) => [fila.datos.id, fila.revision]),
+    ),
+    revisionesEgresos: Object.fromEntries(
+      respuestaEgresos.data.map((fila) => [fila.datos.id, fila.revision]),
+    ),
   }
 }
 
-export async function guardarTrabajoRemoto(trabajo) {
+async function guardarRegistro(tabla, registro, revision, orden) {
   const usuarioId = await obtenerUsuarioId()
-  const { error } = await supabase.from('trabajos').upsert(
-    {
+  const valores = {
+    datos: registro,
+    ...(orden === undefined ? {} : { orden }),
+  }
+
+  if (revision === null) {
+    const { data, error } = await supabase.from(tabla).insert({
       usuario_id: usuarioId,
-      id: trabajo.id,
-      datos: trabajo,
-    },
-    { onConflict: 'usuario_id,id' },
-  )
+      id: registro.id,
+      revision: 0,
+      ...valores,
+    }).select('revision')
+
+    if (error?.code === '23505') throw new ConflictoRemotoError()
+    if (error) throw error
+    if (data?.length !== 1) throw new ConflictoRemotoError()
+    return data[0].revision
+  }
+
+  const { data, error } = await supabase.from(tabla)
+    .update(valores)
+    .eq('usuario_id', usuarioId)
+    .eq('id', registro.id)
+    .eq('revision', revision)
+    .select('revision')
 
   if (error) throw error
+  if (data?.length !== 1) throw new ConflictoRemotoError()
+  return data[0].revision
 }
 
-export async function guardarEgresoRemoto(egreso, orden) {
-  const usuarioId = await obtenerUsuarioId()
-  const { error } = await supabase.from('egresos').upsert(
-    {
-      usuario_id: usuarioId,
-      id: egreso.id,
-      orden,
-      datos: egreso,
-    },
-    { onConflict: 'usuario_id,id' },
-  )
-
-  if (error) throw error
+export function guardarTrabajoRemoto(trabajo, revision) {
+  return guardarRegistro('trabajos', trabajo, revision)
 }
 
-export async function eliminarTrabajoRemoto(id) {
+export function guardarEgresoRemoto(egreso, orden, revision) {
+  return guardarRegistro('egresos', egreso, revision, orden)
+}
+
+async function eliminarRegistro(tabla, id, revision) {
   const usuarioId = await obtenerUsuarioId()
-  const { error } = await supabase
-    .from('trabajos')
+  const { data, error } = await supabase
+    .from(tabla)
     .delete()
     .eq('usuario_id', usuarioId)
     .eq('id', id)
+    .eq('revision', revision)
+    .select('id')
 
   if (error) throw error
+  if (data?.length !== 1) throw new ConflictoRemotoError()
 }
 
-export async function eliminarEgresoRemoto(id) {
-  const usuarioId = await obtenerUsuarioId()
-  const { error } = await supabase
-    .from('egresos')
-    .delete()
-    .eq('usuario_id', usuarioId)
-    .eq('id', id)
+export function eliminarTrabajoRemoto(id, revision) {
+  return eliminarRegistro('trabajos', id, revision)
+}
 
-  if (error) throw error
+export function eliminarEgresoRemoto(id, revision) {
+  return eliminarRegistro('egresos', id, revision)
 }
