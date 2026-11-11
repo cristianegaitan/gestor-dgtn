@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import type { FormEvent, ReactNode } from 'react'
+import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabaseClient'
 
 
-export default function Acceso({ children }) {
-  const [sesion, setSesion] = useState(undefined)
+export default function Acceso({ children }: { children: ReactNode }) {
+  const [sesion, setSesion] = useState<Session | null | undefined>(undefined)
   const [correo, setCorreo] = useState('')
   const [contrasena, setContrasena] = useState('')
   const [error, setError] = useState('')
@@ -21,7 +23,7 @@ export default function Acceso({ children }) {
     return () => suscripcion.subscription.unsubscribe()
   }, [])
 
-  async function iniciarSesion(evento) {
+  async function iniciarSesion(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
     setError('')
     setEnviando(true)

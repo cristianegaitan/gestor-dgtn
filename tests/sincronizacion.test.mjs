@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
-import { aplicarCambios } from '../src/lib/aplicarCambios.js'
+import ts from 'typescript'
+import { aplicarCambios } from '../src/lib/aplicarCambios.ts'
 
 function crearSupabaseFalso() {
   const filas = new Map()
@@ -15,6 +16,7 @@ function crearSupabaseFalso() {
 
     const consulta = {
       select() { return this },
+      overrideTypes() { return this },
       insert(nuevosValores) { accion = 'insert'; valores = nuevosValores; return this },
       update(nuevosValores) { accion = 'update'; valores = nuevosValores; return this },
       delete() { accion = 'delete'; return this },
@@ -73,10 +75,26 @@ function crearSupabaseFalso() {
 
 const supabase = crearSupabaseFalso()
 globalThis.__supabaseParaPrueba = supabase
-const fuente = (await readFile(new URL('../src/lib/datosRemotos.js', import.meta.url), 'utf8'))
+const fuente = (await readFile(new URL('../src/lib/datosRemotos.ts', import.meta.url), 'utf8'))
   .replace("import { supabase } from './supabaseClient'", 'const supabase = globalThis.__supabaseParaPrueba')
-const datosRemotos = await import(`data:text/javascript;base64,${Buffer.from(fuente).toString('base64')}`)
+const javascript = ts.transpileModule(fuente, {
+  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
+}).outputText
+const datosRemotos = await import(`data:text/javascript;base64,${Buffer.from(javascript).toString('base64')}`)
 delete globalThis.__supabaseParaPrueba
+
+test('una revisión ausente detiene el cambio antes de llamar al guardado o al borrado', async () => {
+  const original = [{ id: 99, cliente: 'Original' }]
+  const noDebeLlamarse = async () => assert.fail('No debe enviar una escritura sin revisión')
+  await assert.rejects(
+    aplicarCambios(original, [{ id: 99, cliente: 'Cambio' }], {}, noDebeLlamarse, noDebeLlamarse),
+    /No se conoce la revisión/,
+  )
+  await assert.rejects(
+    aplicarCambios(original, [], {}, noDebeLlamarse, noDebeLlamarse),
+    /No se conoce la revisión/,
+  )
+})
 
 test('un cambio de pago desde otro dispositivo no se sobrescribe con una vista anterior', async () => {
   const original = { id: 1, cliente: 'Prueba', cuentasCobro: [{ id: 'c1', pagos: [] }] }

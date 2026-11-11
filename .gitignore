@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Configuración local y comprobación de tipos
+.env
+.env.*
+!.env.example
+*.tsbuildinfo

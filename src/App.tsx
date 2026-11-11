@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
+import type { CuentaCobro, Egreso, FormularioPago, Pago, Respaldo, Trabajo } from './types'
+import { esFechaISOValida, esRespaldoValido } from './lib/validaciones'
 import { useDatosRemotos } from './lib/useDatosRemotos'
 import './App.css'
 
@@ -21,7 +24,7 @@ const formularioEgresoInicial = {
   trabajoId: '',
 }
 
-const formularioPagoInicial = {
+const formularioPagoInicial: FormularioPago = {
   cuentaId: '',
   monto: '',
   fecha: '',
@@ -30,7 +33,7 @@ const formularioPagoInicial = {
   estado: 'Pendiente',
 }
 
-function formatearFecha(fecha) {
+function formatearFecha(fecha: string) {
   const fechaLocal = new Date(`${fecha}T00:00:00`)
 
   return new Intl.DateTimeFormat('es-AR', {
@@ -40,13 +43,13 @@ function formatearFecha(fecha) {
   }).format(fechaLocal)
 }
 
-function calcularCobradoCentavos(cuenta) {
+function calcularCobradoCentavos(cuenta: CuentaCobro) {
   return (cuenta.pagos ?? [])
     .filter((pago) => pago.estado === 'Confirmado')
     .reduce((total, pago) => total + pago.montoCentavos, 0)
 }
 
-function calcularFechaGuiaEntrega(fechaISO) {
+function calcularFechaGuiaEntrega(fechaISO: string | undefined) {
   if (!fechaISO) return null
 
   const fecha = new Date(`${fechaISO}T12:00:00`)
@@ -62,119 +65,16 @@ function calcularFechaGuiaEntrega(fechaISO) {
   }).format(fecha)
 }
 
-function esFechaISOValida(valor) {
-  if (typeof valor !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) {
-    return false
-  }
-
-  const fecha = new Date(`${valor}T00:00:00Z`)
-
-  return !Number.isNaN(fecha.getTime()) &&
-    fecha.toISOString().slice(0, 10) === valor
-}
-
-function esPagoValido(pago) {
-  return pago &&
-    typeof pago.id === 'string' &&
-    Number.isSafeInteger(pago.montoCentavos) &&
-    pago.montoCentavos > 0 &&
-    esFechaISOValida(pago.fecha) &&
-    ['Pendiente', 'Confirmado'].includes(pago.estado) &&
-    typeof pago.medio === 'string' &&
-    typeof pago.referencia === 'string'
-}
-
-function esCuentaValida(cuenta) {
-  if (
-    !cuenta ||
-    typeof cuenta.id !== 'string' ||
-    typeof cuenta.nombre !== 'string' ||
-    !(cuenta.totalCentavos === null ||
-      (Number.isSafeInteger(cuenta.totalCentavos) &&
-        cuenta.totalCentavos >= 0))
-  ) {
-    return false
-  }
-
-  if (cuenta.pagos === undefined) return true
-
-  if (!Array.isArray(cuenta.pagos) || !cuenta.pagos.every(esPagoValido)) {
-    return false
-  }
-
-  return new Set(cuenta.pagos.map((pago) => pago.id)).size === cuenta.pagos.length
-}
-
-function esTrabajoValido(trabajo) {
-  if (
-    !trabajo ||
-    !Number.isSafeInteger(trabajo.id) ||
-    trabajo.id <= 0 ||
-    typeof trabajo.cliente !== 'string' ||
-    typeof trabajo.servicio !== 'string' ||
-    typeof trabajo.fecha !== 'string' ||
-    typeof trabajo.estado !== 'string' ||
-    (trabajo.fechaISO !== undefined &&
-      trabajo.fechaISO !== '' &&
-      !esFechaISOValida(trabajo.fechaISO)) ||
-    (trabajo.fechaEnlacesEnviados !== undefined &&
-      trabajo.fechaEnlacesEnviados !== '' &&
-      !esFechaISOValida(trabajo.fechaEnlacesEnviados))
-  ) {
-    return false
-  }
-
-  if (trabajo.cuentasCobro === undefined) return true
-
-  if (
-    !Array.isArray(trabajo.cuentasCobro) ||
-    !trabajo.cuentasCobro.every(esCuentaValida)
-  ) {
-    return false
-  }
-
-  return new Set(trabajo.cuentasCobro.map((cuenta) => cuenta.id)).size ===
-    trabajo.cuentasCobro.length
-}
-
-function esEgresoValido(egreso) {
-  return egreso &&
-    typeof egreso.id === 'string' &&
-    typeof egreso.concepto === 'string' &&
-    esFechaISOValida(egreso.fecha) &&
-    Number.isSafeInteger(egreso.montoCentavos) &&
-    egreso.montoCentavos > 0 &&
-    (egreso.trabajoId === null ||
-      (Number.isSafeInteger(egreso.trabajoId) && egreso.trabajoId > 0))
-}
-
-function esRespaldoValido(datos) {
-  if (
-    datos?.version !== 1 ||
-    !Array.isArray(datos.trabajos) ||
-    !Array.isArray(datos.egresos) ||
-    !datos.trabajos.every(esTrabajoValido) ||
-    !datos.egresos.every(esEgresoValido)
-  ) {
-    return false
-  }
-
-  return new Set(datos.trabajos.map((trabajo) => trabajo.id)).size ===
-    datos.trabajos.length &&
-    new Set(datos.egresos.map((egreso) => egreso.id)).size ===
-    datos.egresos.length
-}
-
 function generarIdTrabajo() {
   return Date.now()
 }
 
 
 function App() {
-  const { trabajos, setTrabajos, egresos, setEgresos, errorCarga, errorGuardado, guardando } =
+  const { trabajos, setTrabajos, egresos, setEgresos, errorCarga, errorGuardado, guardando, datosCargados } =
     useDatosRemotos()
   const [formularioEgreso, setFormularioEgreso] = useState(formularioEgresoInicial)
-  const [idEgresoEnEdicion, setIdEgresoEnEdicion] = useState(null)
+  const [idEgresoEnEdicion, setIdEgresoEnEdicion] = useState<string | null>(null)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [formulario, setFormulario] = useState(formularioInicial)
   const [formularioCuenta, setFormularioCuenta] = useState({
@@ -182,14 +82,13 @@ function App() {
     total: '',
   })
 
-  const [idCuentaEnEdicion, setIdCuentaEnEdicion] = useState(null)
+  const [idCuentaEnEdicion, setIdCuentaEnEdicion] = useState<string | null>(null)
 
   const [formularioPago, setFormularioPago] = useState(formularioPagoInicial)
-  const [pagoEnEdicion, setPagoEnEdicion] = useState(null)
-  const [idTrabajoSeleccionado, setTrabajoSeleccionado] = useState(null)
-  const [idTrabajoEnEdicion, setIdTrabajoEnEdicion] = useState(null)
+  const [pagoEnEdicion, setPagoEnEdicion] = useState<{ cuentaId: string; pagoId: string } | null>(null)
+  const [idTrabajoSeleccionado, setTrabajoSeleccionado] = useState<number | null>(null)
+  const [idTrabajoEnEdicion, setIdTrabajoEnEdicion] = useState<number | null>(null)
 
-  const datosCargados = trabajos !== null && egresos !== null
 
   if (!datosCargados) {
     return (
@@ -208,7 +107,7 @@ function App() {
   const cuentasPendientes = trabajos.flatMap((trabajo) =>
     (trabajo.cuentasCobro ?? [])
       .filter(
-        (cuenta) =>
+        (cuenta): cuenta is CuentaCobro & { totalCentavos: number } =>
           cuenta.totalCentavos !== null &&
           cuenta.totalCentavos > calcularCobradoCentavos(cuenta),
       )
@@ -230,7 +129,9 @@ function App() {
   )
 
   const trabajosSinEnlacesEnviados = trabajos
-    .filter((trabajo) => trabajo.fechaISO && !trabajo.fechaEnlacesEnviados)
+    .filter((trabajo): trabajo is Trabajo & { fechaISO: string } =>
+      Boolean(trabajo.fechaISO && !trabajo.fechaEnlacesEnviados),
+    )
     .sort((primero, segundo) =>
       primero.fechaISO.localeCompare(segundo.fechaISO),
     )
@@ -272,7 +173,7 @@ function App() {
 
 
 
-  function manejarCambio(evento) {
+  function manejarCambio(evento: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = evento.target
 
     setFormulario((formularioActual) => ({
@@ -282,7 +183,7 @@ function App() {
   }
 
   function descargarRespaldo() {
-    const datos = {
+    const datos: Respaldo = {
       version: 1,
       fechaRespaldo: new Date().toISOString(),
       trabajos,
@@ -304,14 +205,14 @@ function App() {
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
-  async function restaurarRespaldo(evento) {
+  async function restaurarRespaldo(evento: ChangeEvent<HTMLInputElement>) {
     const archivo = evento.target.files?.[0]
     evento.target.value = ''
 
     if (!archivo) return
 
     try {
-      const datos = JSON.parse(await archivo.text())
+      const datos: unknown = JSON.parse(await archivo.text())
 
       const esValido = esRespaldoValido(datos)
 
@@ -333,7 +234,7 @@ function App() {
     }
   }
 
-  function manejarCambioEgreso(evento) {
+  function manejarCambioEgreso(evento: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = evento.target
 
     setFormularioEgreso((datosActuales) => ({
@@ -342,7 +243,7 @@ function App() {
     }))
   }
 
-  function manejarCambioCuenta(evento) {
+  function manejarCambioCuenta(evento: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = evento.target
 
     setFormularioCuenta((datosActuales) => ({
@@ -351,7 +252,7 @@ function App() {
     }))
   }
 
-  function manejarCambioPago(evento) {
+  function manejarCambioPago(evento: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = evento.target
 
     setFormularioPago((datosActuales) => ({
@@ -365,7 +266,7 @@ function App() {
     setFormularioPago(formularioPagoInicial)
   }
 
-  function iniciarEdicionPago(cuenta, pago) {
+  function iniciarEdicionPago(cuenta: CuentaCobro, pago: Pago) {
     setPagoEnEdicion({ cuentaId: cuenta.id, pagoId: pago.id })
     setFormularioPago({
       cuentaId: cuenta.id,
@@ -378,7 +279,7 @@ function App() {
     document.getElementById('formularioPago')?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  function eliminarPago(cuenta, pago) {
+  function eliminarPago(cuenta: CuentaCobro, pago: Pago) {
     if (!window.confirm(`¿Eliminar el pago de ${(pago.montoCentavos / 100).toLocaleString('es-AR', {
       style: 'currency', currency: 'ARS',
     })} de ${cuenta.nombre}? Esta acción modificará el saldo.`)) return
@@ -409,7 +310,7 @@ function App() {
     setMostrarFormulario(false)
   }
 
-  function iniciarEdicion(trabajo) {
+  function iniciarEdicion(trabajo: Trabajo) {
     setIdTrabajoEnEdicion(trabajo.id)
     setFormulario({
       cliente: trabajo.cliente,
@@ -426,7 +327,7 @@ function App() {
     setMostrarFormulario(true)
   }
 
-  function iniciarEdicionCuenta(cuenta) {
+  function iniciarEdicionCuenta(cuenta: CuentaCobro) {
     setIdCuentaEnEdicion(cuenta.id)
     setFormularioCuenta({
       nombre: cuenta.nombre,
@@ -437,7 +338,7 @@ function App() {
     })
   }
 
-  function agregarCuenta(evento) {
+  function agregarCuenta(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
 
     if (idTrabajoSeleccionado === null) return
@@ -474,7 +375,7 @@ function App() {
       return
     }
 
-    const cuentaNueva = {
+    const cuentaNueva: CuentaCobro = {
       id: crypto.randomUUID(),
       nombre,
       totalCentavos,
@@ -495,7 +396,7 @@ function App() {
 
     setFormularioCuenta({ nombre: '', total: '' })
   }
-  function eliminarEgreso(egreso) {
+  function eliminarEgreso(egreso: Egreso) {
     if (!window.confirm(`¿Eliminar el egreso "${egreso.concepto}"?`)) {
       return
     }
@@ -510,7 +411,7 @@ function App() {
     }
   }
 
-  function iniciarEdicionEgreso(egreso) {
+  function iniciarEdicionEgreso(egreso: Egreso) {
     setIdEgresoEnEdicion(egreso.id)
     setFormularioEgreso({
       concepto: egreso.concepto,
@@ -520,7 +421,7 @@ function App() {
     })
   }
 
-  function registrarEgreso(evento) {
+  function registrarEgreso(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
 
     const concepto = formularioEgreso.concepto.trim()
@@ -561,7 +462,7 @@ function App() {
       return
     }
 
-    const nuevoEgreso = {
+    const nuevoEgreso: Egreso = {
       id: crypto.randomUUID(),
       concepto,
       montoCentavos,
@@ -573,8 +474,10 @@ function App() {
     setFormularioEgreso(formularioEgresoInicial)
   }
 
-  function registrarPago(evento) {
+  function registrarPago(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
+
+    if (!trabajoSeleccionado) return
 
     const montoCentavos = Math.round(Number(formularioPago.monto) * 100)
     const cuentaExiste = trabajoSeleccionado?.cuentasCobro?.some(
@@ -588,7 +491,7 @@ function App() {
       montoCentavos <= 0 ||
       (pagoEnEdicion !== null &&
         (pagoEnEdicion.cuentaId !== formularioPago.cuentaId ||
-          !trabajoSeleccionado.cuentasCobro.some((cuenta) =>
+          !(trabajoSeleccionado.cuentasCobro ?? []).some((cuenta) =>
             cuenta.id === pagoEnEdicion.cuentaId &&
             (cuenta.pagos ?? []).some((pago) => pago.id === pagoEnEdicion.pagoId),
           )))
@@ -596,8 +499,8 @@ function App() {
       return
     }
 
-    const idPagoNuevo = pagoEnEdicion === null ? crypto.randomUUID() : null
-    const datosPago = {
+    const idPagoNuevo = pagoEnEdicion?.pagoId ?? crypto.randomUUID()
+    const datosPago: Omit<Pago, 'id'> = {
       montoCentavos,
       fecha: formularioPago.fecha,
       medio: formularioPago.medio,
@@ -632,7 +535,7 @@ function App() {
     cancelarEdicionPago()
   }
 
-  function cambiarEstadoPago(cuentaId, pagoId) {
+  function cambiarEstadoPago(cuentaId: string, pagoId: string) {
     if (pagoEnEdicion?.cuentaId === cuentaId && pagoEnEdicion.pagoId === pagoId) {
       setFormularioPago((actual) => ({
         ...actual,
@@ -667,10 +570,10 @@ function App() {
     )
   }
 
-  function manejarEnvio(evento) {
+  function manejarEnvio(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
 
-    const nuevoTrabajo = {
+    const nuevoTrabajo: Trabajo = {
       id: generarIdTrabajo(),
       cliente: formulario.cliente.trim(),
       servicio: formulario.servicio.trim(),
@@ -721,7 +624,7 @@ function App() {
     setMostrarFormulario(true)
   }
 
-  function abrirDetalle(idTrabajo) {
+  function abrirDetalle(idTrabajo: number) {
     cerrarFormulario()
     cancelarEdicionPago()
     setIdCuentaEnEdicion(null)

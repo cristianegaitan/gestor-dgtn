@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { DatosRemotos, Egreso, Trabajo } from '../types'
 import { aplicarCambios } from './aplicarCambios'
 import {
   cargarDatosRemotos,
@@ -10,12 +11,16 @@ import {
 } from './datosRemotos'
 
 export function useDatosRemotos() {
-  const [trabajos, setTrabajos] = useState(null)
-  const [egresos, setEgresos] = useState(null)
+  const [trabajos, setTrabajos] = useState<Trabajo[]>([])
+  const [egresos, setEgresos] = useState<Egreso[]>([])
+  const [datosCargados, setDatosCargados] = useState(false)
   const [errorCarga, setErrorCarga] = useState('')
   const [errorGuardado, setErrorGuardado] = useState('')
   const [guardando, setGuardando] = useState(false)
-  const sincronizados = useRef({
+  const sincronizados = useRef<Omit<DatosRemotos, 'trabajos' | 'egresos'> & {
+    trabajos: Trabajo[] | null
+    egresos: Egreso[] | null
+  }>({
     trabajos: null,
     egresos: null,
     revisionesTrabajos: {},
@@ -34,6 +39,7 @@ export function useDatosRemotos() {
         sincronizados.current = datos
         setTrabajos(datos.trabajos)
         setEgresos(datos.egresos)
+        setDatosCargados(true)
       })
       .catch((error) => {
         if (!activo) return
@@ -45,7 +51,7 @@ export function useDatosRemotos() {
   }, [])
 
   useEffect(() => {
-    if (trabajos === null) return
+    if (!datosCargados) return
 
     const numeroTarea = ++ultimaTarea.current
     cola.current = cola.current
@@ -76,10 +82,10 @@ export function useDatosRemotos() {
       .finally(() => {
         if (numeroTarea === ultimaTarea.current) setGuardando(false)
       })
-  }, [trabajos])
+  }, [trabajos, datosCargados])
 
   useEffect(() => {
-    if (egresos === null) return
+    if (!datosCargados) return
 
     const numeroTarea = ++ultimaTarea.current
     cola.current = cola.current
@@ -111,7 +117,7 @@ export function useDatosRemotos() {
       .finally(() => {
         if (numeroTarea === ultimaTarea.current) setGuardando(false)
       })
-  }, [egresos])
+  }, [egresos, datosCargados])
 
-  return { trabajos, setTrabajos, egresos, setEgresos, errorCarga, errorGuardado, guardando }
+  return { trabajos, setTrabajos, egresos, setEgresos, errorCarga, errorGuardado, guardando, datosCargados }
 }
