@@ -1,4 +1,4 @@
-import type { CuentaCobro, Egreso, Pago, Respaldo, Trabajo } from '../types'
+import type { CuentaCobro, Egreso, Pago, Respaldo, Trabajo } from '../types.ts'
 
 function esObjeto(valor: unknown): valor is Record<string, unknown> {
   return typeof valor === 'object' && valor !== null && !Array.isArray(valor)

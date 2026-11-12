@@ -13,6 +13,11 @@ export default defineConfig([
     languageOptions: { globals: globals.node },
   },
   {
+    files: ['server/**/*.ts', 'netlify/**/*.ts'],
+    extends: [tseslint.configs.recommended],
+    languageOptions: { globals: globals.node },
+  },
+  {
     files: ['src/**/*.{ts,tsx}'],
     extends: [
       tseslint.configs.recommended,

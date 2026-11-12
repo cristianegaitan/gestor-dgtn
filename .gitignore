@@ -28,3 +28,7 @@ dist-ssr
 .env.*
 !.env.example
 *.tsbuildinfo
+
+# Archivos usados para trasladar ramas entre computadoras
+/gestor-dgtn-*.bundle
+/gestor-dgtn-*.zip

@@ -44,7 +44,7 @@ export function useDatosRemotos() {
       .catch((error) => {
         if (!activo) return
         console.error('No se pudieron cargar los datos:', error)
-        setErrorCarga('No se pudieron cargar los datos de Supabase. Recargá la página.')
+        setErrorCarga('No se pudieron cargar los datos del gestor. Comprobá la conexión y recargá la página.')
       })
 
     return () => { activo = false }
