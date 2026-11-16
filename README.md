@@ -110,6 +110,18 @@ Las pruebas HTTP ejecutan Express, el adaptador serverless y supabase-js reales,
 
 Las pruebas de base de datos ejecutan las migraciones reales en PostgreSQL embebido con PGlite, con roles sin privilegios de administrador para comprobar RLS. `npm run test:db` permite correr solo ese grupo, que ya está incluido en `npm test`. No requieren credenciales ni escriben en Supabase. Los servicios Auth y PostgREST y las políticas del proyecto remoto requieren además verificación contra ese entorno; estas pruebas locales no certifican su configuración.
 
+## Comprobaciones automáticas en GitHub
+
+El workflow [Comprobaciones](.github/workflows/comprobaciones.yml) ejecuta `npm ci`, `npm run lint`, `npm test` y `npm run build`, en ese orden, con Node.js 24. La compilación incluye la revisión de tipos del frontend y del servidor.
+
+Se activa al subir cambios a `main` o a ramas `codex/**`, al abrir o actualizar un pull request dirigido a `main`, y manualmente desde Actions una vez incorporado el archivo a la rama principal. Las pruebas SQL ya están incluidas en `npm test`.
+
+Los resultados se consultan en [Actions del repositorio](https://github.com/cristianegaitan/gestor-dgtn/actions). Abrir una ejecución y luego el trabajo «Lint, pruebas y compilación» permite ver el paso que falló y su salida. Si se cancela una ejecución al subir un cambio nuevo a la misma rama, revisar la más reciente.
+
+La comprobación usa valores ficticios de Supabase, sin contraseñas ni secretos del proyecto real. No requiere configurar secrets en GitHub y no ejecuta SQL en Supabase. Las acciones externas están fijadas a commits concretos y el token del workflow solo tiene permiso de lectura del contenido.
+
+Este workflow comprueba el código y muestra su resultado. Para exigir una comprobación aprobada antes de fusionar un pull request hace falta configurar además una regla de protección de `main` en GitHub. La publicación automática de Netlify sigue su configuración actual y no espera este workflow por el solo hecho de agregar el archivo.
+
 ## Organización
 
 - `src/App.tsx`: panel, formularios y operaciones de gestión.
@@ -126,6 +138,7 @@ Las pruebas de base de datos ejecutan las migraciones reales en PostgreSQL embeb
 - `netlify/functions/api.ts`: entrada del backend en Netlify.
 - `supabase/migrations/`: instalación versionada del esquema y de las revisiones.
 - `supabase/diagnosticos/`: consulta de metadatos de una instalación existente.
+- `.github/workflows/comprobaciones.yml`: comprobaciones automáticas con GitHub Actions.
 - `tests/`: pruebas HTTP, sincronización, respaldos y SQL con RLS.
 
 ## Sincronización y recuperación
