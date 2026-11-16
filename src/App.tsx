@@ -2,8 +2,7 @@ import { useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import type { CuentaCobro, Egreso, FormularioPago, Pago, Respaldo, Trabajo } from './types'
 import { esFechaISOValida, esRespaldoValido } from './lib/validaciones'
-import { useDatosRemotos } from './lib/useDatosRemotos'
-import './App.css'
+import type { EstadoGestor } from './lib/estadoGestor'
 
 const formularioInicial = {
   cliente: '',
@@ -70,9 +69,9 @@ function generarIdTrabajo() {
 }
 
 
-function App() {
+function App({ datos, demostracion = false }: { datos: EstadoGestor; demostracion?: boolean }) {
   const { trabajos, setTrabajos, egresos, setEgresos, errorCarga, errorGuardado, guardando, datosCargados } =
-    useDatosRemotos()
+    datos
   const [formularioEgreso, setFormularioEgreso] = useState(formularioEgresoInicial)
   const [idEgresoEnEdicion, setIdEgresoEnEdicion] = useState<string | null>(null)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
@@ -141,7 +140,7 @@ function App() {
       id: 1,
       etiqueta: 'Trabajos registrados',
       valor: trabajos.length,
-      detalle: 'Guardados en Supabase',
+      detalle: demostracion ? 'Datos de demostración' : 'Guardados en Supabase',
     },
     {
       id: 2,
@@ -198,7 +197,7 @@ function App() {
     const enlace = document.createElement('a')
 
     enlace.href = url
-    enlace.download = `gestor-dgtn-respaldo-${new Date().toISOString().slice(0, 10)}.json`
+    enlace.download = `gestor-dgtn-${demostracion ? 'demo' : 'respaldo'}-${new Date().toISOString().slice(0, 10)}.json`
     document.body.append(enlace)
     enlace.click()
     enlace.remove()
@@ -221,7 +220,10 @@ function App() {
         return
       }
 
-      if (!window.confirm('¿Reemplazar los trabajos y egresos actuales con este respaldo?')) {
+      const pregunta = demostracion
+        ? '¿Reemplazar los datos de esta demostración con este respaldo?'
+        : '¿Reemplazar los trabajos y egresos actuales con este respaldo?'
+      if (!window.confirm(pregunta)) {
         return
       }
 

@@ -2,6 +2,16 @@
 
 Aplicación de gestión para trabajos de fotografía y video. Permite administrar eventos, cuentas de cobro, pagos, egresos y entregas desde el navegador.
 
+## Probar la demostración
+
+La [demostración pública](https://tangerine-panda-3a3a2d.netlify.app/demo) permite recorrer el gestor sin iniciar sesión, con tres trabajos ficticios, cuentas de cobro, pagos y egresos. En desarrollo local está en `http://localhost:5173/demo`, usando el puerto que indique Vite.
+
+Se pueden crear, editar y borrar registros, confirmar pagos y probar los respaldos. Los cambios se guardan en `sessionStorage`, solo para esa pestaña, y sobreviven a una recarga mientras esa sesión esté disponible. «Reiniciar demo» recupera los ejemplos y cierra los formularios abiertos. Los respaldos descargados se identifican con el prefijo `gestor-dgtn-demo-`.
+
+La demo tiene un almacenamiento y una entrada separados: no carga el cliente privado de Supabase, no llama a la API y no necesita credenciales. Funciona también si el servicio remoto está pausado. Si el navegador no permite guardar, se puede seguir probando en memoria y aparece un aviso al modificar datos. Usar datos ficticios para las pruebas.
+
+El enlace «Ir a mi cuenta» abre la aplicación autenticada. La demo muestra la interfaz y sus operaciones locales; no sustituye las pruebas de la API ni de las políticas RLS. El backend real se usa al iniciar sesión en la aplicación privada.
+
 ## Tecnologías
 
 React, TypeScript en modo estricto, Vite, Node.js, Express 5 y Supabase (autenticación y PostgreSQL). La interfaz se adapta a computadoras y celulares. La persistencia del navegador pasa por una API REST propia; el inicio de sesión continúa usando Supabase Auth.
@@ -17,7 +27,7 @@ React, TypeScript en modo estricto, Vite, Node.js, Express 5 y Supabase (autenti
 
 ## Desarrollo local
 
-Recomendado: Node.js 24 LTS. Mínimo: Node.js 22.18, para ejecutar los módulos TypeScript de las pruebas sin un compilador adicional en tiempo de ejecución.
+Recomendado: Node.js 24 LTS desde 24.15. También se admite Node.js 22 desde 22.22.2 y Node.js 26 o posterior. Las pruebas de interfaz usan jsdom; estos mínimos mantienen compatibilidad con esa dependencia. Las pruebas que importan TSX se ejecutan con `tsx`.
 
 ```bash
 npm ci
@@ -110,6 +120,8 @@ Las pruebas HTTP ejecutan Express, el adaptador serverless y supabase-js reales,
 
 Las pruebas de base de datos ejecutan las migraciones reales en PostgreSQL embebido con PGlite, con roles sin privilegios de administrador para comprobar RLS. `npm run test:db` permite correr solo ese grupo, que ya está incluido en `npm test`. No requieren credenciales ni escriben en Supabase. Los servicios Auth y PostgREST y las políticas del proyecto remoto requieren además verificación contra ese entorno; estas pruebas locales no certifican su configuración.
 
+Las pruebas de interfaz usan React Testing Library y jsdom para montar la entrada pública en StrictMode. Comprueban creación, edición, borrado, recarga, confirmación de pagos y reinicio de la demo. Rechazan cualquier llamada a `fetch` durante esas operaciones y comprueban que una sesión privada de prueba en `localStorage` se conserve. Estas pruebas no sustituyen la inspección visual en navegadores reales.
+
 ## Comprobaciones automáticas en GitHub
 
 El workflow [Comprobaciones](.github/workflows/comprobaciones.yml) ejecuta `npm ci`, `npm run lint`, `npm test` y `npm run build`, en ese orden, con Node.js 24. La compilación incluye la revisión de tipos del frontend y del servidor.
@@ -124,7 +136,10 @@ Este workflow comprueba el código y muestra su resultado. Para exigir una compr
 
 ## Organización
 
-- `src/App.tsx`: panel, formularios y operaciones de gestión.
+- `src/Entrada.tsx`: selección de la entrada privada o la demostración por URL.
+- `src/AplicacionPrivada.tsx`: acceso autenticado y conexión con los datos remotos.
+- `src/Demostracion.tsx` y `src/demo/`: demostración pública y almacenamiento por pestaña.
+- `src/App.tsx`: panel, formularios y operaciones de gestión compartidos por ambas entradas.
 - `src/Acceso.tsx`: inicio y cierre de sesión.
 - `src/types.ts`: contratos de trabajos, cuentas, pagos, egresos y respaldos.
 - `src/lib/validaciones.ts`: comprobación de datos externos y respaldos.

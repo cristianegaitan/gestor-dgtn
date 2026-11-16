@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DatosRemotos, Egreso, Trabajo } from '../types'
+import type { EstadoGestor } from './estadoGestor'
 import { aplicarCambios } from './aplicarCambios'
 import {
   cargarDatosRemotos,
@@ -10,7 +11,7 @@ import {
   guardarTrabajoRemoto,
 } from './datosRemotos'
 
-export function useDatosRemotos() {
+export function useDatosRemotos(): EstadoGestor {
   const [trabajos, setTrabajos] = useState<Trabajo[]>([])
   const [egresos, setEgresos] = useState<Egreso[]>([])
   const [datosCargados, setDatosCargados] = useState(false)

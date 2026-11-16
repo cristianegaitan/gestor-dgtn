@@ -79,6 +79,7 @@ export default function Acceso({ children }: { children: ReactNode }) {
             <button className="primary-button" type="submit" disabled={enviando}>
               {enviando ? 'Ingresando...' : 'Ingresar'}
             </button>
+            <p className="demo-entry"><a href="/demo">Probar la demostración con datos ficticios</a></p>
           </form>
         </main>
       </div>
