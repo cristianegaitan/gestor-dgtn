@@ -2,6 +2,12 @@
 
 Aplicación de gestión para trabajos de fotografía y video. Permite administrar eventos, cuentas de cobro, pagos, egresos y entregas desde el navegador.
 
+[Probar demo sin registro](https://tangerine-panda-3a3a2d.netlify.app/demo) · [Ver el proyecto en el portafolio](https://cristianegaitan.github.io/portafolio-v1/#proyectos) · [Leer el caso de estudio](docs/caso-de-estudio.md)
+
+![Panel de la demostración de Gestor DGTN, con trabajos y saldos ficticios](docs/images/demo-gestor-dgtn.jpg)
+
+Para una primera prueba, creá un trabajo o registrá un egreso en la demo y recargá la página. Los cambios se conservan en esa pestaña; «Reiniciar demo» recupera los datos de ejemplo.
+
 ## Probar la demostración
 
 La [demostración pública](https://tangerine-panda-3a3a2d.netlify.app/demo) permite recorrer el gestor sin iniciar sesión, con tres trabajos ficticios, cuentas de cobro, pagos y egresos. En desarrollo local está en `http://localhost:5173/demo`, usando el puerto que indique Vite.
