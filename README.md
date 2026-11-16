@@ -86,13 +86,13 @@ Después del despliegue, verificar `/api/v1/salud` y una operación autenticada 
 
 ## Base de datos
 
-El proyecto Supabase debe tener las tablas `trabajos` y `egresos`, con sus políticas de acceso por usuario configuradas. Cada tabla guarda el contenido en `datos` (JSONB), junto con `id` y `usuario_id`; `egresos` también utiliza `orden`.
+El repositorio incluye el esquema completo de instalación de las tablas `trabajos` y `egresos`, sus permisos, políticas RLS por usuario, índices y revisiones. Cada tabla guarda el contenido en `datos` (JSONB), junto con `id` y `usuario_id`; `egresos` también utiliza `orden`.
 
-La migración `supabase/migrations/20261013_registro_revisiones.sql` agrega la columna `revision` y los triggers para incrementarla al actualizar. Esa migración presupone las tablas existentes; no crea la base de datos completa desde cero.
+Para un **proyecto Supabase nuevo**, ejecutar primero `supabase/migrations/20261012_esquema_inicial.sql` y después `supabase/migrations/20261013_registro_revisiones.sql`. La primera crea la estructura y la segunda agrega la columna `revision` y los triggers para incrementarla al actualizar. Los roles y componentes de Auth los proporciona Supabase.
 
-La conversión a TypeScript no requiere modificar las tablas ni volver a ejecutar la migración si ya fue aplicada.
+El proyecto publicado ya tiene sus tablas. Esta entrega no requiere ejecutar SQL allí: el esquema inicial se detiene si encuentra tablas existentes. La migración de revisiones que ya fue aplicada se conserva sin cambios.
 
-La API tampoco requiere cambiar las tablas ni volver a ejecutar esa migración. Mantiene el formato JSONB y las revisiones actuales.
+Ver [la guía de base de datos](supabase/README.md) para instalar desde cero, entender el modelo, revisar los límites de JSONB y comparar el esquema de una instalación existente antes de adoptar cambios de SQL.
 
 ## Comprobaciones
 
@@ -100,12 +100,15 @@ La API tampoco requiere cambiar las tablas ni volver a ejecutar esa migración. 
 npm run typecheck
 npm run lint
 npm test
+npm run test:db
 npm run build
 ```
 
 `build` verifica los tipos del frontend y del servidor antes de generar `dist`. Vite transforma TypeScript, pero la comprobación estática la realiza `tsc`.
 
-Las pruebas ejecutan Express, el adaptador serverless y supabase-js reales, simulando únicamente las respuestas HTTP externas de Supabase. Comprueban autenticación, separación por usuario, validación, paginación, CRUD y conflictos de revisión sin escribir en la base real. Las pruebas de respaldo mantienen la cobertura del formato anterior. Las políticas RLS y el trigger del proyecto desplegado requieren además verificación contra ese entorno; el simulador no sustituye esa comprobación.
+Las pruebas HTTP ejecutan Express, el adaptador serverless y supabase-js reales, simulando únicamente las respuestas externas de Supabase. Comprueban autenticación, separación por usuario, validación, paginación, CRUD y conflictos de revisión. Las pruebas de respaldo mantienen la cobertura del formato anterior.
+
+Las pruebas de base de datos ejecutan las migraciones reales en PostgreSQL embebido con PGlite, con roles sin privilegios de administrador para comprobar RLS. `npm run test:db` permite correr solo ese grupo, que ya está incluido en `npm test`. No requieren credenciales ni escriben en Supabase. Los servicios Auth y PostgREST y las políticas del proyecto remoto requieren además verificación contra ese entorno; estas pruebas locales no certifican su configuración.
 
 ## Organización
 
@@ -121,7 +124,9 @@ Las pruebas ejecutan Express, el adaptador serverless y supabase-js reales, simu
 - `server/repositorio.ts`: consultas a Supabase filtradas por usuario y revisión.
 - `server/configuracion.ts`: cliente Supabase independiente por petición.
 - `netlify/functions/api.ts`: entrada del backend en Netlify.
-- `tests/`: pruebas de sincronización y compatibilidad de respaldos.
+- `supabase/migrations/`: instalación versionada del esquema y de las revisiones.
+- `supabase/diagnosticos/`: consulta de metadatos de una instalación existente.
+- `tests/`: pruebas HTTP, sincronización, respaldos y SQL con RLS.
 
 ## Sincronización y recuperación
 
